@@ -39,19 +39,19 @@ contract GetterTest is DcaOutTestBase {
 
     function testGetMySchedules() public {
         vm.startPrank(user);
-        dcaOutManager.createDcaOutSchedule{value: 1 ether}(TEST_RBTC_SELL_AMOUNT, TEST_PERIOD);
-        dcaOutManager.createDcaOutSchedule{value: 2 ether}(TEST_RBTC_SELL_AMOUNT * 2, TEST_PERIOD * 2);
+        dcaOutManager.createDcaOutSchedule{value: 1 ether}(SALE_AMOUNT, SALE_PERIOD);
+        dcaOutManager.createDcaOutSchedule{value: 2 ether}(SALE_AMOUNT * 2, SALE_PERIOD * 2);
         
         IDcaOutManager.DcaOutSchedule[] memory mySchedules = dcaOutManager.getMySchedules();
         assertEq(mySchedules.length, 2, "Should have 2 schedules");
-        assertEq(mySchedules[0].rbtcSaleAmount, TEST_RBTC_SELL_AMOUNT, "First schedule amount");
-        assertEq(mySchedules[1].rbtcSaleAmount, TEST_RBTC_SELL_AMOUNT * 2, "Second schedule amount");
+        assertEq(mySchedules[0].rbtcSaleAmount, SALE_AMOUNT, "First schedule amount");
+        assertEq(mySchedules[1].rbtcSaleAmount, SALE_AMOUNT * 2, "Second schedule amount");
         vm.stopPrank();
     }
 
     function testGetMyScheduleRbtcBalance() public {
         vm.startPrank(user);
-        dcaOutManager.createDcaOutSchedule{value: 1 ether}(TEST_RBTC_SELL_AMOUNT, TEST_PERIOD);
+        dcaOutManager.createDcaOutSchedule{value: 1 ether}(SALE_AMOUNT, SALE_PERIOD);
         
         uint256 balance = dcaOutManager.getMyScheduleRbtcBalance(0);
         assertEq(balance, 1 ether, "Should have 1 ether balance");
@@ -60,25 +60,25 @@ contract GetterTest is DcaOutTestBase {
 
     function testGetMyScheduleRbtcAmount() public {
         vm.startPrank(user);
-        dcaOutManager.createDcaOutSchedule{value: 1 ether}(TEST_RBTC_SELL_AMOUNT, TEST_PERIOD);
+        dcaOutManager.createDcaOutSchedule{value: 1 ether}(SALE_AMOUNT, SALE_PERIOD);
         
         uint256 amount = dcaOutManager.getMyScheduleRbtcAmount(0);
-        assertEq(amount, TEST_RBTC_SELL_AMOUNT, "Should return sale amount");
+        assertEq(amount, SALE_AMOUNT, "Should return sale amount");
         vm.stopPrank();
     }
 
     function testGetMyScheduleSalePeriod() public {
         vm.startPrank(user);
-        dcaOutManager.createDcaOutSchedule{value: 1 ether}(TEST_RBTC_SELL_AMOUNT, TEST_PERIOD);
+        dcaOutManager.createDcaOutSchedule{value: 1 ether}(SALE_AMOUNT, SALE_PERIOD);
         
         uint256 period = dcaOutManager.getMyScheduleSalePeriod(0);
-        assertEq(period, TEST_PERIOD, "Should return sale period");
+        assertEq(period, SALE_PERIOD, "Should return sale period");
         vm.stopPrank();
     }
 
     function testGetMyScheduleId() public {
         vm.startPrank(user);
-        dcaOutManager.createDcaOutSchedule{value: 1 ether}(TEST_RBTC_SELL_AMOUNT, TEST_PERIOD);
+        dcaOutManager.createDcaOutSchedule{value: 1 ether}(SALE_AMOUNT, SALE_PERIOD);
         
         bytes32 scheduleId = dcaOutManager.getMyScheduleId(0);
         assertTrue(scheduleId != bytes32(0), "Schedule ID should not be zero");
@@ -88,7 +88,7 @@ contract GetterTest is DcaOutTestBase {
     function testGetMyDocBalance() public {
         // First create a schedule and execute a sale to get some DOC
         vm.startPrank(user);
-        dcaOutManager.createDcaOutSchedule{value: 1 ether}(TEST_RBTC_SELL_AMOUNT, TEST_PERIOD);
+        dcaOutManager.createDcaOutSchedule{value: 1 ether}(SALE_AMOUNT, SALE_PERIOD);
         IDcaOutManager.DcaOutSchedule memory schedule = dcaOutManager.getSchedule(user, 0);
         vm.stopPrank();
 
@@ -108,18 +108,18 @@ contract GetterTest is DcaOutTestBase {
 
     function testGetSchedule() public {
         vm.startPrank(user);
-        dcaOutManager.createDcaOutSchedule{value: 1 ether}(TEST_RBTC_SELL_AMOUNT, TEST_PERIOD);
+        dcaOutManager.createDcaOutSchedule{value: 1 ether}(SALE_AMOUNT, SALE_PERIOD);
         vm.stopPrank();
 
         IDcaOutManager.DcaOutSchedule memory schedule = dcaOutManager.getSchedule(user, 0);
-        assertEq(schedule.rbtcSaleAmount, TEST_RBTC_SELL_AMOUNT, "Wrong rBTC amount");
-        assertEq(schedule.salePeriod, TEST_PERIOD, "Wrong period");
+        assertEq(schedule.rbtcSaleAmount, SALE_AMOUNT, "Wrong rBTC amount");
+        assertEq(schedule.salePeriod, SALE_PERIOD, "Wrong period");
         assertEq(schedule.rbtcBalance, 1 ether, "Should have initial deposit");
     }
 
     function testGetScheduleRbtcBalance() public {
         vm.startPrank(user);
-        dcaOutManager.createDcaOutSchedule{value: 1 ether}(TEST_RBTC_SELL_AMOUNT, TEST_PERIOD);
+        dcaOutManager.createDcaOutSchedule{value: 1 ether}(SALE_AMOUNT, SALE_PERIOD);
         vm.stopPrank();
 
         uint256 balance = dcaOutManager.getScheduleRbtcBalance(user, 0);
@@ -128,25 +128,25 @@ contract GetterTest is DcaOutTestBase {
 
     function testGetScheduleRbtcAmount() public {
         vm.startPrank(user);
-        dcaOutManager.createDcaOutSchedule{value: 1 ether}(TEST_RBTC_SELL_AMOUNT, TEST_PERIOD);
+        dcaOutManager.createDcaOutSchedule{value: 1 ether}(SALE_AMOUNT, SALE_PERIOD);
         vm.stopPrank();
 
         uint256 amount = dcaOutManager.getScheduleRbtcAmount(user, 0);
-        assertEq(amount, TEST_RBTC_SELL_AMOUNT, "Wrong rBTC amount");
+        assertEq(amount, SALE_AMOUNT, "Wrong rBTC amount");
     }
 
     function testGetScheduleSalePeriod() public {
         vm.startPrank(user);
-        dcaOutManager.createDcaOutSchedule{value: 1 ether}(TEST_RBTC_SELL_AMOUNT, TEST_PERIOD);
+        dcaOutManager.createDcaOutSchedule{value: 1 ether}(SALE_AMOUNT, SALE_PERIOD);
         vm.stopPrank();
 
         uint256 period = dcaOutManager.getScheduleSalePeriod(user, 0);
-        assertEq(period, TEST_PERIOD, "Wrong period");
+        assertEq(period, SALE_PERIOD, "Wrong period");
     }
 
     function testGetScheduleId() public {
         vm.startPrank(user);
-        dcaOutManager.createDcaOutSchedule{value: 1 ether}(TEST_RBTC_SELL_AMOUNT, TEST_PERIOD);
+        dcaOutManager.createDcaOutSchedule{value: 1 ether}(SALE_AMOUNT, SALE_PERIOD);
         vm.stopPrank();
 
         bytes32 scheduleId = dcaOutManager.getScheduleId(user, 0);
@@ -155,7 +155,7 @@ contract GetterTest is DcaOutTestBase {
 
     function testGetUserDocBalance() public {
         vm.startPrank(user);
-        dcaOutManager.createDcaOutSchedule{value: 1 ether}(TEST_RBTC_SELL_AMOUNT, TEST_PERIOD);
+        dcaOutManager.createDcaOutSchedule{value: 1 ether}(SALE_AMOUNT, SALE_PERIOD);
         vm.stopPrank();
 
         // Execute a sale to generate DOC balance

@@ -5,6 +5,7 @@ import {Script} from "forge-std/Script.sol";
 import {console2} from "forge-std/Test.sol";
 import {MockDoc} from "../test/mocks/MockDoc.sol";
 import {MockMocProxy} from "../test/mocks/MockMocProxy.sol";
+import {MockMocOracle} from "../test/mocks/MockMocOracle.sol";
 import "./Constants.sol";
 
 /**
@@ -20,6 +21,7 @@ contract HelperConfig is Script {
     struct NetworkConfig {
         address docTokenAddress;
         address mocProxyAddress;
+        address mocOracleAddress;
         address feeCollector;
         address owner;
         address swapper;
@@ -34,6 +36,11 @@ contract HelperConfig is Script {
     // Mock addresses for local testing
     address public mockDocToken;
     address public mockMocProxy;
+    address public mockMocOracle;
+    
+    // Real oracle addresses for fork testing
+    address constant MOC_ORACLE_MAINNET = 0xe2927A0620b82A66D67F678FC9b826B0E01B1bFD;
+    address constant MOC_ORACLE_TESTNET = 0xbffBD993FF1d229B0FfE55668F2009d20d4F7C5f;
 
     /*//////////////////////////////////////////////////////////////
                                EVENTS
@@ -68,6 +75,7 @@ contract HelperConfig is Script {
         return NetworkConfig({
             docTokenAddress: DOC_TOKEN_MAINNET,
             mocProxyAddress: MOC_PROXY_MAINNET,
+            mocOracleAddress: MOC_ORACLE_MAINNET,
             feeCollector: FEE_COLLECTOR_MAINNET,
             owner: ADMIN_MAINNET, // Same as admin in production
             swapper: SWAPPER_MAINNET
@@ -82,6 +90,7 @@ contract HelperConfig is Script {
         return NetworkConfig({
             docTokenAddress: DOC_TOKEN_TESTNET,
             mocProxyAddress: MOC_PROXY_TESTNET,
+            mocOracleAddress: MOC_ORACLE_TESTNET,
             feeCollector: FEE_COLLECTOR_TESTNET,
             owner: ADMIN_TESTNET, // Same as admin in production
             swapper: SWAPPER_TESTNET
@@ -114,11 +123,17 @@ contract HelperConfig is Script {
         emit HelperConfig__CreatedMockMocProxy(mockMocProxy);
         console2.log("Mock MoC Proxy deployed at:", mockMocProxy);
 
+        // Deploy mock MoC oracle
+        MockMocOracle mockOracle = new MockMocOracle();
+        mockMocOracle = address(mockOracle);
+        console2.log("Mock MoC Oracle deployed at:", mockMocOracle);
+
         vm.stopBroadcast();
 
         return NetworkConfig({
             docTokenAddress: mockDocToken,
             mocProxyAddress: mockMocProxy,
+            mocOracleAddress: mockMocOracle,
             feeCollector: msg.sender, // Use deployer as fee collector in local
             owner: msg.sender, // Use deployer as owner in local
             swapper: msg.sender // Use deployer as swapper in local

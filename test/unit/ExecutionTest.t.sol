@@ -23,80 +23,49 @@ contract ExecutionTest is DcaOutTestBase {
 
     function testExecuteMint() public {
         // User creates schedule with deposit
-        vm.startPrank(user);
-        dcaOutManager.createDcaOutSchedule{value: 1 ether}(TEST_RBTC_SELL_AMOUNT, TEST_PERIOD);
-        IDcaOutManager.DcaOutSchedule memory schedule = dcaOutManager.getSchedule(user, 0);
-        vm.stopPrank();
-
-        // Check event emission (partial match)
-        vm.expectEmit(true, true, true, false); // rbtcSpent is not checked because it is unpredictable
-        emit DcaOutManager__RbtcSold(user, schedule.scheduleId, TEST_RBTC_SELL_AMOUNT, TEST_RBTC_SELL_AMOUNT, 0, 0);
+        bytes32 scheduleId = createDcaOutSchedule(user, SALE_AMOUNT, SALE_PERIOD, 1 ether);
         
         // Execute the sale
-        vm.prank(swapper);
-        dcaOutManager.sellRbtc(user, 0, schedule.scheduleId);
-
-        // Check user received DOC
-        uint256 userDocBalance = dcaOutManager.getUserDocBalance(user);
-        assertTrue(userDocBalance > 0, "User should have DOC balance");
-
-        // Check rBTC balance decreased (but may have some change credited back)
-        uint256 remainingRbtc = dcaOutManager.getScheduleRbtcBalance(user, 0);
-        assertTrue(remainingRbtc >= 1 ether - TEST_RBTC_SELL_AMOUNT, "rBTC balance should decrease by at least the sale amount");
-        assertTrue(remainingRbtc <= 1 ether, "rBTC balance should not exceed original deposit");
+        executeSale(user, 0, scheduleId);
     }
 
     function testCannotExecuteMintIfNotSwapper() public {
-        vm.startPrank(user);
-        dcaOutManager.createDcaOutSchedule{value: 1 ether}(TEST_RBTC_SELL_AMOUNT, TEST_PERIOD);
-        IDcaOutManager.DcaOutSchedule memory schedule = dcaOutManager.getSchedule(user, 0);
-        vm.stopPrank();
+        bytes32 scheduleId = createDcaOutSchedule(user, SALE_AMOUNT, SALE_PERIOD, 1 ether);
 
         // Use a non-swapper address
         address nonSwapper = makeAddr("nonSwapper");
         vm.expectRevert(abi.encodeWithSelector(IDcaOutManager.DcaOutManager__UnauthorizedSwapper.selector, nonSwapper));
         vm.prank(nonSwapper);
-        dcaOutManager.sellRbtc(user, 0, schedule.scheduleId);
+        dcaOutManager.sellRbtc(user, 0, scheduleId);
     }
 
     function testCannotExecuteMintIfNotReady() public {
-        vm.startPrank(user);
-        dcaOutManager.createDcaOutSchedule{value: 1 ether}(TEST_RBTC_SELL_AMOUNT, TEST_PERIOD);
-        IDcaOutManager.DcaOutSchedule memory schedule = dcaOutManager.getSchedule(user, 0);
-        vm.stopPrank();
+        bytes32 scheduleId = createDcaOutSchedule(user, SALE_AMOUNT, SALE_PERIOD, 1 ether);
 
         // Execute first sale
-        vm.prank(swapper);
-        dcaOutManager.sellRbtc(user, 0, schedule.scheduleId);
+        executeSale(user, 0, scheduleId);
 
         // Try to execute again immediately (should fail)
         // Note: We can't predict exact timestamps on mainnet fork, so we just check the error type
         vm.expectRevert();
         vm.prank(swapper);
-        dcaOutManager.sellRbtc(user, 0, schedule.scheduleId);
+        dcaOutManager.sellRbtc(user, 0, scheduleId);
     }
 
     function testCannotUpdateScheduleWithSaleAmountTooHigh() public {
-        vm.startPrank(user);
-        // Create schedule with valid amount (0.05 ether is half of 0.1 ether)
-        dcaOutManager.createDcaOutSchedule{value: 0.1 ether}(0.05 ether, TEST_PERIOD);
-        IDcaOutManager.DcaOutSchedule memory schedule = dcaOutManager.getSchedule(user, 0);
-        vm.stopPrank();
+        bytes32 scheduleId = createDcaOutSchedule(user, SALE_AMOUNT, SALE_PERIOD, 1 ether);
 
-        // Execute first sale to reduce balance to 0.05 ether
-        vm.prank(swapper);
-        dcaOutManager.sellRbtc(user, 0, schedule.scheduleId);
-
-        // Fast forward time to allow next sale
-        vm.warp(block.timestamp + TEST_PERIOD + 1);
+        // Execute first sale to reduce balance
+        executeSale(user, 0, scheduleId);
 
         // Get the actual balance after the first sale (may include change)
         uint256 actualBalance = dcaOutManager.getScheduleRbtcBalance(user, 0);
         
-        // Try to update schedule to sell more than available (0.06 ether > actual balance available)
-        vm.expectRevert(abi.encodeWithSelector(IDcaOutManager.DcaOutManager__SaleAmountTooHighForPeriodicSales.selector, 0.06 ether, actualBalance, actualBalance / 2));
+        // Try to update schedule to sell more than half of available balance
+        uint256 tooHighAmount = (actualBalance / 2) + 1; // More than half
+        vm.expectRevert(abi.encodeWithSelector(IDcaOutManager.DcaOutManager__SaleAmountTooHighForPeriodicSales.selector, tooHighAmount, actualBalance, actualBalance / 2));
         vm.startPrank(user);
-        dcaOutManager.updateDcaOutSchedule(0, schedule.scheduleId, 0.06 ether, TEST_PERIOD);
+        dcaOutManager.updateDcaOutSchedule(0, scheduleId, tooHighAmount, SALE_PERIOD);
         vm.stopPrank();
     }
 
@@ -106,14 +75,10 @@ contract ExecutionTest is DcaOutTestBase {
 
     function testBatchExecuteMint() public {
         // User 1 creates schedule
-        vm.prank(user);
-        dcaOutManager.createDcaOutSchedule{value: 1 ether}(TEST_RBTC_SELL_AMOUNT, TEST_PERIOD);
-        IDcaOutManager.DcaOutSchedule memory schedule1 = dcaOutManager.getSchedule(user, 0);
+        bytes32 scheduleId1 = createDcaOutSchedule(user, SALE_AMOUNT, SALE_PERIOD, 1 ether);
 
         // User 2 creates schedule
-        vm.prank(user2);
-        dcaOutManager.createDcaOutSchedule{value: 2 ether}(TEST_RBTC_SELL_AMOUNT * 2, TEST_PERIOD);
-        IDcaOutManager.DcaOutSchedule memory schedule2 = dcaOutManager.getSchedule(user2, 0);
+        bytes32 scheduleId2 = createDcaOutSchedule(user2, SALE_AMOUNT * 2, SALE_PERIOD, 2 ether);
 
         // Execute batch sale
         address[] memory users = new address[](2);
@@ -124,16 +89,10 @@ contract ExecutionTest is DcaOutTestBase {
         users[1] = user2;
         scheduleIndexes[0] = 0;
         scheduleIndexes[1] = 0;
-        scheduleIds[0] = schedule1.scheduleId;
-        scheduleIds[1] = schedule2.scheduleId;
-
-        // Note: Batch event test removed due to exact matching issues
+        scheduleIds[0] = scheduleId1;
+        scheduleIds[1] = scheduleId2;
 
         executeBatchSale(users, scheduleIndexes, scheduleIds);
-
-        // Check both users received DOC
-        assertTrue(dcaOutManager.getUserDocBalance(user) > 0, "User 1 should have DOC");
-        assertTrue(dcaOutManager.getUserDocBalance(user2) > 0, "User 2 should have DOC");
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -142,7 +101,7 @@ contract ExecutionTest is DcaOutTestBase {
 
     function testRevertSellRbtcWithArrayIndexOutOfBounds() public {
         vm.startPrank(user);
-        dcaOutManager.createDcaOutSchedule{value: 1 ether}(TEST_RBTC_SELL_AMOUNT, TEST_PERIOD);
+        dcaOutManager.createDcaOutSchedule{value: 1 ether}(SALE_AMOUNT, SALE_PERIOD);
         IDcaOutManager.DcaOutSchedule memory schedule = dcaOutManager.getSchedule(user, 0);
         vm.stopPrank();
 
@@ -155,7 +114,7 @@ contract ExecutionTest is DcaOutTestBase {
     function testRevertSellRbtcWithInsufficientBalance() public {
         vm.startPrank(user);
         // Create schedule with valid sale amount
-        dcaOutManager.createDcaOutSchedule{value: 1 ether}(0.1 ether, TEST_PERIOD);
+        dcaOutManager.createDcaOutSchedule{value: 1 ether}(0.1 ether, SALE_PERIOD);
         IDcaOutManager.DcaOutSchedule memory schedule = dcaOutManager.getSchedule(user, 0);
         vm.stopPrank();
 

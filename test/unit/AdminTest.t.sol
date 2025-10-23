@@ -24,8 +24,8 @@ contract AdminTest is DcaOutTestBase {
     function testGrantSwapperRole() public {
         address newSwapper = makeAddr("newSwapper");
         
-        // Note: SwapperSet event test removed due to exact matching issues
-        
+        vm.expectEmit(true, true, true, true);
+        emit DcaOutManager__SwapperSet(newSwapper);
         vm.prank(address(this));
         dcaOutManager.grantSwapperRole(newSwapper);
         

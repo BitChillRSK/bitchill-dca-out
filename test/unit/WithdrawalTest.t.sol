@@ -24,7 +24,7 @@ contract WithdrawalTest is DcaOutTestBase {
     function testWithdrawDoc() public {
         // First create a schedule and execute a sale to get some DOC
         vm.startPrank(user);
-        dcaOutManager.createDcaOutSchedule{value: 1 ether}(TEST_RBTC_SELL_AMOUNT, TEST_PERIOD);
+        dcaOutManager.createDcaOutSchedule{value: 1 ether}(SALE_AMOUNT, SALE_PERIOD);
         IDcaOutManager.DcaOutSchedule memory schedule = dcaOutManager.getSchedule(user, 0);
         vm.stopPrank();
 
@@ -60,7 +60,7 @@ contract WithdrawalTest is DcaOutTestBase {
 
     function testWithdrawDocWithExactBalance() public {
         vm.startPrank(user);
-        dcaOutManager.createDcaOutSchedule{value: 1 ether}(TEST_RBTC_SELL_AMOUNT, TEST_PERIOD);
+        dcaOutManager.createDcaOutSchedule{value: 1 ether}(SALE_AMOUNT, SALE_PERIOD);
         vm.stopPrank();
 
         // Execute a sale to generate DOC balance
