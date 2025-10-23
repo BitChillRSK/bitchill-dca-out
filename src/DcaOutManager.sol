@@ -46,20 +46,6 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Validate schedule index exists for user
-     * @param user The user address
-     * @param scheduleIndex The schedule index
-     * @param scheduleId The schedule ID for validation
-     */
-    modifier validateScheduleIndexAndId(address user, uint256 scheduleIndex, bytes32 scheduleId) {
-        if (scheduleIndex >= s_userSchedules[user].length) {
-            revert DcaOutManager__InexistentScheduleIndex(user, scheduleIndex, s_userSchedules[user].length);
-        }
-        if (s_userSchedules[user][scheduleIndex].scheduleId != scheduleId) revert DcaOutManager__ScheduleIdAndIndexMismatch(scheduleId, s_userSchedules[user][scheduleIndex].scheduleId);
-        _;
-    }
-
-    /**
      * @notice Only allow swapper role
      */
     modifier onlySwapper() {
@@ -149,7 +135,7 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         DcaOutSchedule memory newSchedule = DcaOutSchedule({
             rbtcSaleAmount: rbtcSaleAmount,
             salePeriod: salePeriod,
-            lastExecutionTime: 0, // Never executed yet
+            lastSaleTimestamp: 0, // Never executed yet
             rbtcBalance: msg.value,
             scheduleId: scheduleId
         });
@@ -172,7 +158,8 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         bytes32 scheduleId,
         uint256 rbtcSaleAmount,
         uint256 salePeriod
-    ) external override payable validateScheduleIndexAndId(msg.sender, scheduleIndex, scheduleId) {
+    ) external override payable {
+        _validateScheduleIndexAndId(msg.sender, scheduleIndex, scheduleId);
         DcaOutSchedule storage schedule = s_userSchedules[msg.sender][scheduleIndex];
         
 
@@ -206,8 +193,8 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
     function setSaleAmount(uint256 scheduleIndex, bytes32 scheduleId, uint256 rbtcSaleAmount)
         external
         override
-        validateScheduleIndexAndId(msg.sender, scheduleIndex, scheduleId)
     {
+        _validateScheduleIndexAndId(msg.sender, scheduleIndex, scheduleId);
         DcaOutSchedule storage schedule = s_userSchedules[msg.sender][scheduleIndex];
         _validateSaleAmount(rbtcSaleAmount, schedule.rbtcBalance);
         schedule.rbtcSaleAmount = rbtcSaleAmount;
@@ -223,8 +210,8 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
     function setSalePeriod(uint256 scheduleIndex, bytes32 scheduleId, uint256 salePeriod)
         external
         override
-        validateScheduleIndexAndId(msg.sender, scheduleIndex, scheduleId)
     {
+        _validateScheduleIndexAndId(msg.sender, scheduleIndex, scheduleId);
         _validateSalePeriod(salePeriod);
         DcaOutSchedule storage schedule = s_userSchedules[msg.sender][scheduleIndex];
         schedule.salePeriod = salePeriod;
@@ -239,9 +226,9 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
     function deleteDcaOutSchedule(uint256 scheduleIndex, bytes32 scheduleId)
         external
         override
-        validateScheduleIndexAndId(msg.sender, scheduleIndex, scheduleId)
         nonReentrant
-    {
+        {
+        _validateScheduleIndexAndId(msg.sender, scheduleIndex, scheduleId);
         DcaOutSchedule[] storage schedules = s_userSchedules[msg.sender];
         DcaOutSchedule memory schedule = schedules[scheduleIndex];
 
@@ -274,9 +261,8 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         external
         payable
         override
-        nonReentrant
-        validateScheduleIndexAndId(msg.sender, scheduleIndex, scheduleId)
     {
+        _validateScheduleIndexAndId(msg.sender, scheduleIndex, scheduleId);
         if (msg.value == 0) revert DcaOutManager__DepositAmountCantBeZero();
 
         DcaOutSchedule storage schedule = s_userSchedules[msg.sender][scheduleIndex];
@@ -297,8 +283,8 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         external
         override
         nonReentrant
-        validateScheduleIndexAndId(msg.sender, scheduleIndex, scheduleId)
     {
+        _validateScheduleIndexAndId(msg.sender, scheduleIndex, scheduleId);
         DcaOutSchedule storage schedule = s_userSchedules[msg.sender][scheduleIndex];
         if (amount == 0 || amount > schedule.rbtcBalance) amount = schedule.rbtcBalance;
         schedule.rbtcBalance -= amount;
@@ -334,30 +320,68 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
      * @param scheduleIndex The schedule index
      * @param scheduleId The schedule ID for validation
      */
+    // function sellRbtc(address user, uint256 scheduleIndex, bytes32 scheduleId)
+    //     external
+    //     override
+    //     onlySwapper
+    // {
+    //     // Read-only checks and compute amounts
+    //     (uint256 rbtcToSpend, uint256 execTime) = _preSellChecks(user, scheduleIndex, scheduleId);
+
+    //     // Mint DOC from MoC and handle change
+    //     (uint256 docReceived, uint256 rbtcChange) = _mintDocWithChange(rbtcToSpend);
+    //     if (docReceived == 0) revert DcaOutManager__DocMintFailed(rbtcToSpend);
+
+    //     // Single write to schedule: apply spend and change; set next execution time
+    //     DcaOutSchedule storage schedule = s_userSchedules[user][scheduleIndex];
+    //     schedule.rbtcBalance = schedule.rbtcBalance - rbtcToSpend + rbtcChange;
+    //     schedule.lastSaleTimestamp = execTime;
+
+    //     // Calculate and collect fee
+    //     uint256 fee = _calculateFee(docReceived);
+    //     uint256 docAfterFee = docReceived - fee;
+    //     _transferFee(i_docToken, fee);
+
+    //     // Credit user's DOC balance
+    //     s_userDocBalances[user] += docAfterFee;
+
+    //     emit DcaOutManager__RbtcSold(
+    //         user, s_userSchedules[user][scheduleIndex].scheduleId, rbtcToSpend, docAfterFee, docReceived
+    //     );
+    // }
+
+    /**
+     * @notice Gas-optimized trusted single sale (assumes well-formed inputs)
+     * @dev Skips ID and period validations to minimize gas. Intended for BitChill bot.
+     * @param user The user address
+     * @param scheduleIndex The schedule index
+     * @param scheduleId The schedule ID for validation
+     */
     function sellRbtc(address user, uint256 scheduleIndex, bytes32 scheduleId)
         external
-        override
         onlySwapper
-        validateScheduleIndexAndId(user, scheduleIndex, scheduleId)
     {
-        // Validate and update state
-        uint256 rbtcToSpend = _sellRbtcChecksEffects(user, scheduleIndex, scheduleId);
+        _validateScheduleIndexAndId(user, scheduleIndex, scheduleId);
+        DcaOutSchedule storage schedule = s_userSchedules[user][scheduleIndex]; 
+        uint256 lastSaleTimestamp = schedule.lastSaleTimestamp;
+        uint256 salePeriod = schedule.salePeriod;
+        _validatePeriodElapsed(lastSaleTimestamp, salePeriod);
+        SaleAmounts memory saleAmounts;
+        saleAmounts.rbtcToSpend = schedule.rbtcSaleAmount;
 
-        // Mint DOC from MoC
-        uint256 docReceived = _mintDocFromMoc(rbtcToSpend);
-        if (docReceived == 0) revert DcaOutManager__DocMintFailed(rbtcToSpend);
+        (saleAmounts.docReceived, saleAmounts.rbtcSpent) = _mintDoc(saleAmounts.rbtcToSpend);
 
-        // Calculate and collect fee
-        uint256 fee = _calculateFee(docReceived);
-        uint256 docAfterFee = docReceived - fee;
-        _transferFee(i_docToken, fee);
+        schedule.rbtcBalance -= saleAmounts.rbtcSpent; // Will revert if input was incorrect and the schedule's rBTC balance was insufficient
+        schedule.lastSaleTimestamp = lastSaleTimestamp == 0
+            ? block.timestamp
+            : lastSaleTimestamp + salePeriod;
 
-        // Credit user's DOC balance
-        s_userDocBalances[user] += docAfterFee;
+        // Fees and credit
+        saleAmounts.feeAmount = _calculateFee(saleAmounts.docReceived);
+        s_userDocBalances[user] += saleAmounts.docReceived - saleAmounts.feeAmount;
+        _transferFee(i_docToken, saleAmounts.feeAmount);
 
-        emit DcaOutManager__RbtcSold(
-            user, s_userSchedules[user][scheduleIndex].scheduleId, rbtcToSpend, docAfterFee, docReceived
-        );
+        emit DcaOutManager__RbtcSold(user, schedule.scheduleId, saleAmounts.rbtcToSpend, saleAmounts.rbtcSpent, saleAmounts.docReceived - saleAmounts.feeAmount, saleAmounts.docReceived);
     }
 
     /**
@@ -366,58 +390,105 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
      * @param scheduleIndexes Array of schedule indexes
      * @param scheduleIds Array of schedule IDs for validation
      */
+    // function batchSellRbtc(
+    //     address[] memory users,
+    //     uint256[] memory scheduleIndexes,
+    //     bytes32[] memory scheduleIds
+    // ) external override onlySwapper {
+    //     uint256 len = users.length;
+    //     if (len == 0) revert DcaOutManager__ArrayLengthMismatch(0, 0);
+    //     if (len != scheduleIndexes.length || len != scheduleIds.length) {
+    //         revert DcaOutManager__ArrayLengthMismatch(len, scheduleIndexes.length);
+    //     }
+
+    //     uint256 totalRbtcToSpend;
+    //     uint256[] memory rbtcSaleAmounts = new uint256[](len);
+    //     uint256[] memory execTimes = new uint256[](len);
+
+    //     // Read-only checks for all schedules; no writes yet
+    //     for (uint256 i; i < len; ++i) {
+    //         (uint256 rbtcSaleAmount, uint256 execTime) = _preSellChecks(users[i], scheduleIndexes[i], scheduleIds[i]);
+    //         rbtcSaleAmounts[i] = rbtcSaleAmount;
+    //         execTimes[i] = execTime;
+    //         totalRbtcToSpend += rbtcSaleAmount;
+    //     }
+
+    //     // Mint total DOC from MoC and handle change
+    //     (uint256 totalDocReceived, uint256 totalRbtcChange) = _mintDocWithChange(totalRbtcToSpend);
+    //     if (totalDocReceived == 0) revert DcaOutManager__DocMintFailed(totalRbtcToSpend);
+
+    //     // Distribute DOC, apply schedule updates in single writes, and collect fees
+    //     uint256 totalFee = _applyPostMintAndDistribute(
+    //         users,
+    //         scheduleIndexes,
+    //         rbtcSaleAmounts,
+    //         execTimes,
+    //         totalDocReceived,
+    //         totalRbtcChange,
+    //         totalRbtcToSpend
+    //     );
+
+    //     // Transfer total fees
+    //     _transferFee(i_docToken, totalFee);
+
+    //     emit DcaOutManager__RbtcSoldBatch(totalRbtcToSpend, totalDocReceived - totalFee, totalDocReceived, len);
+    // }
+
+    /**
+     * @notice Gas-optimized trusted batch sale (assumes well-formed inputs)
+     * @dev Uses calldata, no dynamic buffers, two tight loops, unchecked increments.
+     * @param users User addresses (calldata)
+     * @param scheduleIndexes Schedule indexes (calldata)
+     */
     function batchSellRbtc(
-        address[] memory users,
-        uint256[] memory scheduleIndexes,
-        bytes32[] memory scheduleIds
-    ) external override onlySwapper {
+        address[] calldata users,
+        uint256[] calldata scheduleIndexes,
+        bytes32[] calldata scheduleIds,
+        uint256 totalRbtcToSpend
+    ) external onlySwapper {
         uint256 len = users.length;
-        if (len == 0) revert DcaOutManager__ArrayLengthMismatch(0, 0);
-        if (len != scheduleIndexes.length || len != scheduleIds.length) {
-            revert DcaOutManager__ArrayLengthMismatch(len, scheduleIndexes.length);
-        }
+        // Mint once using provided total
+        (uint256 totalDocReceived, uint256 totalRbtcSpent) = _mintDoc(totalRbtcToSpend);
 
-        uint256 totalRbtcToSpend;
-        uint256[] memory rbtcSaleAmounts = new uint256[](len);
-
-        // Validate all schedules and update state
-        for (uint256 i; i < len; ++i) {
-            uint256 rbtcSaleAmount = _sellRbtcChecksEffects(users[i], scheduleIndexes[i], scheduleIds[i]);
-            rbtcSaleAmounts[i] = rbtcSaleAmount;
-            totalRbtcToSpend += rbtcSaleAmount;
-        }
-
-        // Mint total DOC from MoC
-        uint256 totalDocReceived = _mintDocFromMoc(totalRbtcToSpend);
-        if (totalDocReceived == 0) revert DcaOutManager__DocMintFailed(totalRbtcToSpend);
-
-        // Distribute DOC proportionally and collect fees
+        // Single write pass: distribute DOC, apply change, update schedule, collect fees
         uint256 totalFee;
-        for (uint256 i; i < len; ++i) {
-            // Calculate user's share of minted DOC
-            uint256 userDocShare = (totalDocReceived * rbtcSaleAmounts[i]) / totalRbtcToSpend;
+        for (uint256 i; i < len;) {
+            address user = users[i];
+            uint256 scheduleIndex = scheduleIndexes[i];
+            bytes32 scheduleId = scheduleIds[i];
+            _validateScheduleIndexAndId(user, scheduleIndex, scheduleId);
+            SaleAmounts memory saleAmounts;
             
-            // Calculate fee for this user
-            uint256 userFee = _calculateFee(userDocShare);
-            uint256 userDocAfterFee = userDocShare - userFee;
-            totalFee += userFee;
+            DcaOutSchedule storage schedule = s_userSchedules[user][scheduleIndex];
+            uint256 lastSaleTimestamp = schedule.lastSaleTimestamp;
+            uint256 salePeriod = schedule.salePeriod;
+            _validatePeriodElapsed(lastSaleTimestamp, salePeriod);
+            
+            saleAmounts.rbtcToSpend = schedule.rbtcSaleAmount;
 
-            // Credit user's balance
-            s_userDocBalances[users[i]] += userDocAfterFee;
+            // Proportional allocations
+            saleAmounts.docReceived = (totalDocReceived * saleAmounts.rbtcToSpend) / totalRbtcToSpend;
+            // Potentially overestimate by 1 wei the rbtc spent by each user to avoid accounting errors
+            saleAmounts.rbtcSpent = Math.mulDiv(totalRbtcSpent, saleAmounts.rbtcToSpend, totalRbtcToSpend, Math.Rounding.Up);
 
-            emit DcaOutManager__RbtcSold(
-                users[i],
-                s_userSchedules[users[i]][scheduleIndexes[i]].scheduleId,
-                rbtcSaleAmounts[i],
-                userDocAfterFee,
-                userDocShare
-            );
+            // Single-write schedule update
+            schedule.rbtcBalance -= saleAmounts.rbtcSpent; // Will revert if input was incorrect and the schedule's rBTC balance was insufficient
+            schedule.lastSaleTimestamp = lastSaleTimestamp == 0
+                ? block.timestamp
+                : lastSaleTimestamp + salePeriod;
+
+            // Fees and credit
+            saleAmounts.feeAmount = _calculateFee(saleAmounts.docReceived);
+            totalFee += saleAmounts.feeAmount;
+            s_userDocBalances[user] += saleAmounts.docReceived - saleAmounts.feeAmount;
+
+            emit DcaOutManager__RbtcSold(user, scheduleId, saleAmounts.rbtcToSpend, saleAmounts.rbtcSpent, saleAmounts.docReceived - saleAmounts.feeAmount, saleAmounts.docReceived);
+
+            unchecked { ++i; }
         }
 
-        // Transfer total fees
         _transferFee(i_docToken, totalFee);
-
-        emit DcaOutManager__RbtcSoldBatch(totalRbtcToSpend, totalDocReceived - totalFee, totalDocReceived, len);
+        emit DcaOutManager__RbtcSoldBatch(totalRbtcToSpend, totalRbtcSpent, totalDocReceived - totalFee, totalDocReceived, len);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -463,6 +534,20 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
                            INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+
+    /**
+     * @notice Validate schedule index exists for user
+     * @param user The user address
+     * @param scheduleIndex The schedule index
+     * @param scheduleId The schedule ID for validation
+     */
+    function _validateScheduleIndexAndId(address user, uint256 scheduleIndex, bytes32 scheduleId) private view {
+        if (scheduleIndex >= s_userSchedules[user].length) {
+            revert DcaOutManager__InexistentScheduleIndex(user, scheduleIndex, s_userSchedules[user].length);
+        }
+        if (s_userSchedules[user][scheduleIndex].scheduleId != scheduleId) revert DcaOutManager__ScheduleIdAndIndexMismatch(scheduleId, s_userSchedules[user][scheduleIndex].scheduleId);
+    }
+
     /**
      * @notice Validate that the sale amount is valid against the rBTC balance
      * @param saleAmount The sale amount to validate
@@ -474,17 +559,29 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         if (saleAmount > rbtcBalance / 2) revert DcaOutManager__SaleAmountTooHighForPeriodicSales(saleAmount, rbtcBalance, rbtcBalance / 2);
     }
 
+    /**
+     * @notice Validate that the sale period is valid
+     * @param salePeriod The sale period to validate
+     */
     function _validateSalePeriod(uint256 salePeriod) private view {
         if (salePeriod < s_minSalePeriod) revert DcaOutManager__SalePeriodBelowMinimum(salePeriod, s_minSalePeriod);
     }
 
+    function _validatePeriodElapsed(uint256 lastSaleTimestamp, uint256 salePeriod) private view {
+        if (lastSaleTimestamp != 0 && block.timestamp < lastSaleTimestamp + salePeriod) {
+            revert DcaOutManager__SalePeriodNotElapsed(lastSaleTimestamp, lastSaleTimestamp + salePeriod, block.timestamp);
+        }
+    }
+
     /**
-     * @notice Mint DOC from MoC protocol by depositing rBTC
+     * @notice Mint DOC from MoC protocol by depositing rBTC and track change
      * @param rbtcSaleAmount Amount of rBTC to send
      * @return docReceived Amount of DOC received
+     * @return rbtcSpent Amount of rBTC spent to mint DOC (rbtcSaleAmount - change returned by MoC)
      */
-    function _mintDocFromMoc(uint256 rbtcSaleAmount) internal returns (uint256 docReceived) {
+    function _mintDoc(uint256 rbtcSaleAmount) internal returns (uint256 docReceived, uint256 rbtcSpent) {
         uint256 docBalanceBefore = i_docToken.balanceOf(address(this));
+        uint256 rbtcBalanceBefore = address(this).balance;
 
         // Calculate the net sale amount that will get exchanged for DOC after subtracting the MoC commission
         uint256 netSaleAmount = rbtcSaleAmount * PRECISION_FACTOR / (PRECISION_FACTOR + s_mocCommission);
@@ -497,44 +594,84 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         }
         
         docReceived = i_docToken.balanceOf(address(this)) - docBalanceBefore;
+        rbtcSpent = rbtcBalanceBefore - address(this).balance;
     }
 
     /**
-     * @notice Checks and effects for selling rBTC, before interactions
+     * @notice Distribute DOC and handle rBTC change for batch operations
+     * @param users Array of user addresses
+     * @param scheduleIndexes Array of schedule indexes
+     * @param rbtcSaleAmounts Array of rBTC sale amounts
+     * @param totalDocReceived Total DOC received from MoC
+     * @param totalRbtcChange Total rBTC change returned by MoC
+     * @param totalRbtcToSpend Total rBTC spent
+     * @return totalFee Total fees collected
+     */
+    // function _applyPostMintAndDistribute(
+    //     address[] memory users,
+    //     uint256[] memory scheduleIndexes,
+    //     uint256[] memory rbtcSaleAmounts,
+    //     uint256[] memory execTimes,
+    //     uint256 totalDocReceived,
+    //     uint256 totalRbtcChange,
+    //     uint256 totalRbtcToSpend
+    // ) private returns (uint256 totalFee) {
+    //     uint256 len = users.length;
+    //     for (uint256 i; i < len; ++i) {
+    //         address user = users[i];
+    //         uint256 spend = rbtcSaleAmounts[i];
+            
+    //         // Proportional shares
+    //         uint256 userDocShare = (totalDocReceived * spend) / totalRbtcToSpend;
+    //         uint256 userRbtcChange = (totalRbtcChange * spend) / totalRbtcToSpend;
+
+    //         // Single write to schedule: apply spend and change; set next execution time
+    //         DcaOutSchedule storage schedule = s_userSchedules[user][scheduleIndexes[i]];
+    //         schedule.rbtcBalance = schedule.rbtcBalance - spend + userRbtcChange;
+    //         schedule.lastSaleTimestamp = execTimes[i];
+
+    //         // Fees and DOC credit
+    //         uint256 userFee = _calculateFee(userDocShare);
+    //         totalFee += userFee;
+    //         uint256 userDocAfterFee = userDocShare - userFee;
+    //         s_userDocBalances[user] += userDocAfterFee;
+
+    //         emit DcaOutManager__RbtcSold(
+    //             user,
+    //             schedule.scheduleId,
+    //             spend,
+    //             userDocAfterFee,
+    //             userDocShare
+    //         );
+    //     }
+    // }
+
+    /**
+     * @notice Pre-sell read-only checks and next execution time computation
      * @param user The user address
      * @param scheduleIndex The schedule index
      * @param scheduleId The schedule ID for validation
-     * @return The rBTC amount to spend
+     * @return rbtcToSpend Amount of rBTC to spend for this sale
+     * @return execTime New lastSaleTimestamp to set after mint
      */
-    function _sellRbtcChecksEffects(address user, uint256 scheduleIndex, bytes32 scheduleId)
-        private
-        validateScheduleIndexAndId(user, scheduleIndex, scheduleId)
-        returns (uint256)
-    {
-        DcaOutSchedule storage schedule = s_userSchedules[user][scheduleIndex];
+    // function _preSellChecks(address user, uint256 scheduleIndex, bytes32 scheduleId)
+    //     private
+    //     view
+    //     validateScheduleIndexAndId(user, scheduleIndex, scheduleId)
+    //     returns (uint256 rbtcToSpend, uint256 execTime)
+    // {
+    //     DcaOutSchedule storage schedule = s_userSchedules[user][scheduleIndex];
 
-        // Validate schedule has enough rBTC to sell
-        if (schedule.rbtcBalance < schedule.rbtcSaleAmount) {
-            revert DcaOutManager__InsufficientRbtcBalance(schedule.rbtcSaleAmount, schedule.rbtcBalance);
-        }
+    //     if (schedule.rbtcBalance < schedule.rbtcSaleAmount) {
+    //         revert DcaOutManager__InsufficientRbtcBalance(schedule.rbtcSaleAmount, schedule.rbtcBalance);
+    //     }
+    //     if (schedule.lastSaleTimestamp > 0 && block.timestamp < schedule.lastSaleTimestamp + schedule.salePeriod) {
+    //         revert DcaOutManager__SalePeriodNotElapsed(schedule.lastSaleTimestamp, schedule.lastSaleTimestamp + schedule.salePeriod, block.timestamp);
+    //     }
 
-        // Check if sale period has elapsed (skip check if this is the first sale)
-        if (schedule.lastExecutionTime > 0 && 
-            block.timestamp < schedule.lastExecutionTime + schedule.salePeriod) {
-            revert DcaOutManager__SalePeriodNotElapsed(schedule.lastExecutionTime, schedule.lastExecutionTime + schedule.salePeriod, block.timestamp);
-        }
-
-        // Update state
-        uint256 rbtcToSpend = schedule.rbtcSaleAmount;
-        schedule.rbtcBalance -= rbtcToSpend;
-        
-        // Update last execution time (similar pattern to DcaManager)
-        schedule.lastExecutionTime = schedule.lastExecutionTime == 0
-            ? block.timestamp
-            : schedule.lastExecutionTime + schedule.salePeriod;
-
-        return rbtcToSpend;
-    }
+    //     rbtcToSpend = schedule.rbtcSaleAmount;
+    //     execTime = schedule.lastSaleTimestamp == 0 ? block.timestamp : schedule.lastSaleTimestamp + schedule.salePeriod;
+    // }
 
     /*//////////////////////////////////////////////////////////////
                                 GETTERS

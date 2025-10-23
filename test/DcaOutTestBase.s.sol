@@ -31,6 +31,10 @@ contract DcaOutTestBase is Test {
     address public user2;
     address public swapper;
     address public feeCollector;
+    
+    // Role addresses (following reference pattern)
+    address ADMIN = makeAddr(ADMIN_STRING);
+    address SWAPPER = makeAddr(SWAPPER_STRING);
 
     uint256 constant STARTING_RBTC_USER_BALANCE = STARTING_RBTC_BALANCE;
 
@@ -59,11 +63,7 @@ contract DcaOutTestBase is Test {
         uint256 rbtcSaleAmount,
         uint256 salePeriod
     );
-    event DcaOutManager__ScheduleDeleted(
-        address indexed user,
-        uint256 indexed scheduleIndex,
-        bytes32 indexed scheduleId
-    );
+    event DcaOutManager__ScheduleDeleted(address indexed user, uint256 indexed scheduleIndex, bytes32 indexed scheduleId);
     event DcaOutManager__RbtcDeposited(
         address indexed user,
         uint256 indexed scheduleIndex,
@@ -76,26 +76,28 @@ contract DcaOutTestBase is Test {
         bytes32 indexed scheduleId,
         uint256 amount
     );
-    event DcaOutManager__DocWithdrawn(
-        address indexed user,
-        uint256 indexed amount
-    );
+    event DcaOutManager__DocWithdrawn(address user, uint256 amount);
     event DcaOutManager__RbtcSold(
         address indexed user,
         bytes32 indexed scheduleId,
-        uint256 indexed rbtcSoldAmount,
+        uint256 indexed rbtcSaleAmount, // establieshed in the schedule
+        uint256 rbtcSpent, // amount of rBTC spent in the sale (rbtcSaleAmount - change returned by MoC)
         uint256 docReceivedAfterFee,
         uint256 docReceived
     );
+
     event DcaOutManager__RbtcSoldBatch(
-        uint256 indexed totalRbtcSoldAmount,
+        uint256 indexed totalRbtcSaleAmount,
+        uint256 indexed totalRbtcSpent,
         uint256 indexed totalDocReceivedAfterFee,
-        uint256 indexed totalDocReceived,
+        uint256 totalDocReceived,
         uint256 usersCount
     );
     event DcaOutManager__SwapperSet(address indexed swapper);
     event DcaOutManager__MinSalePeriodSet(uint256 indexed minSalePeriod);
     event DcaOutManager__MaxSchedulesPerUserSet(uint256 indexed maxSchedules);
+    event DcaOutManager__SaleAmountSet(address indexed user, bytes32 indexed scheduleId, uint256 indexed rbtcSaleAmount);
+    event DcaOutManager__SalePeriodSet(address indexed user, bytes32 indexed scheduleId, uint256 indexed salePeriod);
 
     /*//////////////////////////////////////////////////////////////
                             SETUP FUNCTIONS
@@ -108,6 +110,10 @@ contract DcaOutTestBase is Test {
         user2 = makeAddr("user2");
         swapper = makeAddr(SWAPPER_STRING);
         feeCollector = makeAddr(FEE_COLLECTOR_STRING);
+        
+        // Set the constants to match the variables
+        ADMIN = makeAddr(ADMIN_STRING);
+        SWAPPER = swapper; // Use the same address
 
         // Deal rBTC funds to user
         vm.deal(user, STARTING_RBTC_USER_BALANCE);
@@ -134,11 +140,25 @@ contract DcaOutTestBase is Test {
         docToken = MockDoc(config.docTokenAddress);
         mocProxy = MockMocProxy(payable(config.mocProxyAddress));
 
-        // Grant swapper role - use deployer for local, config admin for fork
-        address admin = block.chainid == ANVIL_CHAIN_ID ? address(this) : config.admin;
+        // Grant roles - use test contract as admin for local/fork, config admin for live networks
+        // Use the same environment detection logic as the deployment script
+        bool isLocal = block.chainid == ANVIL_CHAIN_ID;
+        bool isFork = block.chainid == RSK_MAINNET_CHAIN_ID || block.chainid == RSK_TESTNET_CHAIN_ID;
+        
+        address admin = (isLocal || isFork) ? address(this) : config.admin;
         vm.startPrank(admin);
-        dcaOutManager.grantRole(dcaOutManager.SWAPPER_ROLE(), swapper);
+        dcaOutManager.grantRole(dcaOutManager.SWAPPER_ROLE(), SWAPPER);
+        dcaOutManager.grantRole(dcaOutManager.DEFAULT_ADMIN_ROLE(), ADMIN);
         vm.stopPrank();
+        
+        // For local/fork testing, ensure test contract has ownership
+        if (isLocal || isFork) {
+            // Transfer ownership to test contract if not already
+            if (dcaOutManager.owner() != address(this)) {
+                vm.prank(dcaOutManager.owner());
+                dcaOutManager.transferOwnership(address(this));
+            }
+        }
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -190,8 +210,15 @@ contract DcaOutTestBase is Test {
         uint256[] memory scheduleIndexes,
         bytes32[] memory scheduleIds
     ) internal {
+        // Calculate total rBTC to spend
+        uint256 totalRbtcToSpend;
+        for (uint256 i; i < users.length; ++i) {
+            IDcaOutManager.DcaOutSchedule memory schedule = dcaOutManager.getSchedule(users[i], scheduleIndexes[i]);
+            totalRbtcToSpend += schedule.rbtcSaleAmount;
+        }
+        
         vm.prank(swapper);
-        dcaOutManager.batchSellRbtc(users, scheduleIndexes, scheduleIds);
+        dcaOutManager.batchSellRbtc(users, scheduleIndexes, scheduleIds, totalRbtcToSpend);
     }
 
     /**

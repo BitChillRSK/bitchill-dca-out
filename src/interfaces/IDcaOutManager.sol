@@ -14,9 +14,16 @@ interface IDcaOutManager {
     struct DcaOutSchedule {
         uint256 rbtcSaleAmount;        // Amount of rBTC to sell per period
         uint256 salePeriod;            // Time between sales (in seconds)
-        uint256 lastExecutionTime; // Timestamp of last execution
+        uint256 lastSaleTimestamp; // Timestamp of last execution
         uint256 rbtcBalance;       // Current rBTC balance deposited
         bytes32 scheduleId;        // Unique identifier
+    }
+
+    struct SaleAmounts {
+        uint256 rbtcToSpend; // Periodic sale amount
+        uint256 rbtcSpent; // Amount of rBTC spent in the sale
+        uint256 docReceived; // Amount of DOC received in the sale
+        uint256 feeAmount; // Amount of DOC paid as fee
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -40,11 +47,7 @@ interface IDcaOutManager {
         uint256 salePeriod
     );
 
-    event DcaOutManager__ScheduleDeleted(
-        address indexed user,
-        uint256 indexed scheduleIndex,
-        bytes32 indexed scheduleId
-    );
+    event DcaOutManager__ScheduleDeleted(address indexed user, uint256 indexed scheduleIndex, bytes32 indexed scheduleId);
 
     event DcaOutManager__RbtcDeposited(
         address indexed user,
@@ -56,22 +59,21 @@ interface IDcaOutManager {
     event DcaOutManager__RbtcSold(
         address indexed user,
         bytes32 indexed scheduleId,
-        uint256 indexed rbtcSoldAmount,
+        uint256 indexed rbtcSaleAmount, // establieshed in the schedule
+        uint256 rbtcSpent, // amount of rBTC spent in the sale (rbtcSaleAmount - change returned by MoC)
         uint256 docReceivedAfterFee,
         uint256 docReceived
     );
 
     event DcaOutManager__RbtcSoldBatch(
-        uint256 indexed totalRbtcSoldAmount,
+        uint256 indexed totalRbtcSaleAmount,
+        uint256 indexed totalRbtcSpent,
         uint256 indexed totalDocReceivedAfterFee,
-        uint256 indexed totalDocReceived,
+        uint256 totalDocReceived,
         uint256 usersCount
     );
 
-    event DcaOutManager__DocWithdrawn(
-        address indexed user,
-        uint256 indexed amount
-    );
+    event DcaOutManager__DocWithdrawn(address indexed user, uint256 indexed amount);
 
     event DcaOutManager__RbtcWithdrawn(
         address indexed user,
@@ -83,7 +85,7 @@ interface IDcaOutManager {
     event DcaOutManager__SwapperSet(address indexed swapper);
     event DcaOutManager__MinSalePeriodSet(uint256 indexed minSalePeriod);
     event DcaOutManager__MaxSchedulesPerUserSet(uint256 indexed maxSchedules);
-    event DcaOutManager__SaleAmountSet(address indexed user, bytes32 indexed scheduleId, uint256 indexed saleAmount);
+    event DcaOutManager__SaleAmountSet(address indexed user, bytes32 indexed scheduleId, uint256 indexed rbtcSaleAmount);
     event DcaOutManager__SalePeriodSet(address indexed user, bytes32 indexed scheduleId, uint256 indexed salePeriod);
 
     /*//////////////////////////////////////////////////////////////
@@ -99,12 +101,10 @@ interface IDcaOutManager {
     error DcaOutManager__ScheduleIdAndIndexMismatch(bytes32 providedId, bytes32 expectedId);
     error DcaOutManager__SalePeriodNotElapsed(uint256 lastSaleTimestamp, uint256 nextSaleTimestamp, uint256 currentTime);
     error DcaOutManager__DocBalanceInsufficient(uint256 requestedAmount, uint256 availableAmount);
-    error DcaOutManager__InsufficientRbtcBalance(uint256 requestedAmount, uint256 availableAmount);
     error DcaOutManager__DocMintFailed(uint256 rbtcAmount);
     error DcaOutManager__RbtcWithdrawalFailed(address user, uint256 amount);
     error DcaOutManager__SaleAmountTooHighForPeriodicSales(uint256 saleAmount, uint256 rbtcBalance, uint256 maxSaleAmount);
     error DcaOutManager__UnauthorizedSwapper(address caller);
-    error DcaOutManager__ArrayLengthMismatch(uint256 expected, uint256 actual);
     error DcaOutManager__NotMoC(address caller);
     
     /*//////////////////////////////////////////////////////////////
@@ -131,9 +131,10 @@ interface IDcaOutManager {
     // Execution (called by swapper)
     function sellRbtc(address user, uint256 scheduleIndex, bytes32 scheduleId) external;
     function batchSellRbtc(
-        address[] memory users,
-        uint256[] memory scheduleIndexes,
-        bytes32[] memory scheduleIds
+        address[] calldata users,
+        uint256[] calldata scheduleIndexes,
+        bytes32[] calldata scheduleIds,
+        uint256 totalRbtcToSpend
     ) external;
 
     // Admin functions

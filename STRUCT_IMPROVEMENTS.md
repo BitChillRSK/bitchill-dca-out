@@ -97,7 +97,7 @@ function getScheduleId(address user, uint256 scheduleIndex) external view return
 struct DcaOutSchedule {
     uint256 rbtcAmount;        // Amount of rBTC to sell per period
     uint256 period;            // Time between sells (in seconds)
-    uint256 lastExecutionTime; // Timestamp of last execution
+    uint256 lastSaleTimestamp; // Timestamp of last execution
     uint256 rbtcBalance;       // Current rBTC balance deposited
     bytes32 scheduleId;        // Unique identifier
 }

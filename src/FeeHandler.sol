@@ -180,7 +180,6 @@ abstract contract FeeHandler is IFeeHandler, Ownable {
     function _calculateFee(uint256 docAmount) internal view returns (uint256) {
         uint256 minFeeRate = s_minFeeRate;
         uint256 maxFeeRate = s_maxFeeRate;
-        uint256 feePurchaseLowerBound = s_feePurchaseLowerBound;
         uint256 feePurchaseUpperBound = s_feePurchaseUpperBound;
 
         // If flat rate or amount is above upper bound, apply minimum fee
@@ -188,6 +187,7 @@ abstract contract FeeHandler is IFeeHandler, Ownable {
             return docAmount * minFeeRate / FEE_PERCENTAGE_DIVISOR;
         }
 
+        uint256 feePurchaseLowerBound = s_feePurchaseLowerBound;
         // If amount is below lower bound, apply maximum fee
         if (docAmount <= feePurchaseLowerBound) {
             return docAmount * maxFeeRate / FEE_PERCENTAGE_DIVISOR;

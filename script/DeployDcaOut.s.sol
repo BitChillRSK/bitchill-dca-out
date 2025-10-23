@@ -52,9 +52,7 @@ contract DeployDcaOut is DeployBase {
         uint256 minSaleAmount;
         uint256 minSalePeriod;
         
-        Environment env = getEnvironment();
-        
-        if (env == Environment.TESTNET) {
+        if (environment == Environment.TESTNET) {
             // Testing parameters for testnet (manual testing with fake money)
             minSaleAmount = MIN_SALE_AMOUNT_TESTNET;
             minSalePeriod = MIN_SALE_PERIOD_TESTNET;
@@ -63,7 +61,7 @@ contract DeployDcaOut is DeployBase {
             // Production parameters for mainnet, local, and fork testing
             minSaleAmount = MIN_SALE_AMOUNT;
             minSalePeriod = MIN_SALE_PERIOD;
-            console2.log("Using PRODUCTION parameters for", env == Environment.MAINNET ? "mainnet" : env == Environment.LOCAL ? "local" : "fork", "deployment");
+            console2.log("Using PRODUCTION parameters for", environment == Environment.MAINNET ? "mainnet" : environment == Environment.LOCAL ? "local" : "fork", "deployment");
         }
 
         // Deploy DcaOutManager
@@ -80,9 +78,20 @@ contract DeployDcaOut is DeployBase {
 
         console2.log("DcaOutManager deployed at:", address(dcaOutManager));
 
-        // Transfer ownership to admin if not local network
-        if (block.chainid != ANVIL_CHAIN_ID) {
-            console2.log("Transferring ownership to admin:", config.admin);
+        // Handle ownership and roles based on environment (following reference pattern)
+        Environment env = getEnvironment();
+        
+        if (env == Environment.LOCAL || env == Environment.FORK) {
+            console2.log("Local/Fork deployment - deployer retains ownership and admin role");
+            // For local/fork testing, grant the caller (test contract) the DEFAULT_ADMIN_ROLE
+            dcaOutManager.grantRole(dcaOutManager.DEFAULT_ADMIN_ROLE(), msg.sender);
+            console2.log("DEFAULT_ADMIN_ROLE granted to deployer");
+            // For local/fork testing, grant the caller (test contract) the SWAPPER_ROLE
+            dcaOutManager.grantRole(dcaOutManager.SWAPPER_ROLE(), msg.sender);
+            console2.log("SWAPPER_ROLE granted to deployer");
+        } else {
+            // For live networks (testnet/mainnet), transfer ownership to config admin
+            console2.log("Live network deployment - transferring ownership to admin:", config.admin);
             dcaOutManager.transferOwnership(config.admin);
             
             // Grant admin the DEFAULT_ADMIN_ROLE
@@ -94,14 +103,6 @@ contract DeployDcaOut is DeployBase {
             // Grant swapper role to swapper
             dcaOutManager.grantRole(dcaOutManager.SWAPPER_ROLE(), config.swapper);
             console2.log("SWAPPER_ROLE granted to swapper");
-        } else {
-            console2.log("Local deployment - deployer retains ownership and admin role");
-            // For local testing, grant the caller (test contract) the DEFAULT_ADMIN_ROLE
-            dcaOutManager.grantRole(dcaOutManager.DEFAULT_ADMIN_ROLE(), msg.sender);
-            console2.log("DEFAULT_ADMIN_ROLE granted to deployer");
-            // For local testing, grant the caller (test contract) the SWAPPER_ROLE
-            dcaOutManager.grantRole(dcaOutManager.SWAPPER_ROLE(), msg.sender);
-            console2.log("SWAPPER_ROLE granted to deployer");
         }
 
         vm.stopBroadcast();

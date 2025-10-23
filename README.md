@@ -103,18 +103,24 @@ forge test --gas-report
 forge script script/DeployDcaOut.s.sol:DeployDcaOut --rpc-url http://localhost:8545 --broadcast
 
 # Deploy to Rootstock Testnet
-forge script script/DeployDcaOut.s.sol:DeployDcaOut \
-  --rpc-url $RSK_TESTNET_RPC \
+forge script script/DeployDcaOut.s.sol \
+  --rpc-url $RSK_TESTNET_RPC_URL \
   --private-key $PRIVATE_KEY \
   --broadcast \
-  --verify
+  --verify \
+  --verifier blockscout \
+  --verifier-url $BLOCKSCOUT_API_URL \
+  --legacy
 
 # Deploy to Rootstock Mainnet
-forge script script/DeployDcaOut.s.sol:DeployDcaOut \
-  --rpc-url $RSK_MAINNET_RPC \
+forge script script/DeployDcaOut.s.sol \
+  --rpc-url $RSK_MAINNET_RPC_URL \
   --private-key $PRIVATE_KEY \
   --broadcast \
-  --verify
+  --verify \
+  --verifier blockscout \
+  --verifier-url $BLOCKSCOUT_API_URL \
+  --legacy
 ```
 
 ## 📖 Usage

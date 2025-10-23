@@ -72,7 +72,7 @@ function _sellRbtcChecksEffects(address user, uint256 scheduleIndex, bytes32 sch
     // ✅ Check schedule is active
     // ✅ Check sufficient balance
     // ✅ Check period elapsed (skip for first execution)
-    // ✅ Update state (balance, lastExecutionTime)
+    // ✅ Update state (balance, lastSaleTimestamp)
     // ✅ Return rBTC amount
 }
 ```
@@ -132,7 +132,7 @@ Suite result: ok. 22 passed; 0 failed; 0 skipped
 ## Key Takeaways
 
 1. **Schedule IDs are essential** - protect against race conditions
-2. **First execution allowed immediately** - `lastExecutionTime == 0` check (same as DcaManager)
+2. **First execution allowed immediately** - `lastSaleTimestamp == 0` check (same as DcaManager)
 3. **Helper functions for DRY** - `_sellRbtcChecksEffects` follows checks-effects-interactions
 4. **Single-transaction creation** - Better UX, lower gas costs
 5. **Consistent patterns** - Now fully aligned with DcaManager coding style
