@@ -2,13 +2,13 @@
 pragma solidity 0.8.19;
 
 import {Test, console2} from "forge-std/Test.sol";
-import {DcaOutManager} from "../src/DcaOutManager.sol";
-import {IDcaOutManager} from "../src/interfaces/IDcaOutManager.sol";
-import {IFeeHandler} from "../src/interfaces/IFeeHandler.sol";
-import {DeployDcaOut} from "../script/DeployDcaOut.s.sol";
-import {HelperConfig, MockDoc, MockMocProxy} from "../script/HelperConfig.s.sol";
-import "../test/Constants.sol";
-import "../script/Constants.sol";
+import {DcaOutManager} from "../../src/DcaOutManager.sol";
+import {IDcaOutManager} from "../../src/interfaces/IDcaOutManager.sol";
+import {IFeeHandler} from "../../src/interfaces/IFeeHandler.sol";
+import {DeployDcaOut} from "../../script/DeployDcaOut.s.sol";
+import {HelperConfig, MockDoc, MockMocProxy} from "../../script/HelperConfig.s.sol";
+import "../Constants.sol";
+import "../../script/Constants.sol";
 
 /**
  * @title DcaOutTestBase
