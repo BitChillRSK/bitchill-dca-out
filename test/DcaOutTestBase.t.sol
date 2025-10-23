@@ -31,10 +31,6 @@ contract DcaOutTestBase is Test {
     address public user2;
     address public swapper;
     address public feeCollector;
-    
-    // Role addresses (following reference pattern)
-    address ADMIN = makeAddr(ADMIN_STRING);
-    address SWAPPER = makeAddr(SWAPPER_STRING);
 
     uint256 constant STARTING_RBTC_USER_BALANCE = STARTING_RBTC_BALANCE;
 
@@ -104,25 +100,27 @@ contract DcaOutTestBase is Test {
     //////////////////////////////////////////////////////////////*/
 
     function setUp() public virtual {
-        // Create test accounts
-        owner = address(this); // Test contract is owner for easier testing
+        // Deploy DcaOutManager first to get the config
+        deployDcaOut = new DeployDcaOut();
+        (dcaOutManager, helperConfig) = deployDcaOut.run();
+        HelperConfig.NetworkConfig memory config = helperConfig.getActiveNetworkConfig();
+
+        // Use addresses from deployment config as single source of truth
+        // For local/fork testing, test contract acts as owner and swapper
+        bool isLocal = block.chainid == ANVIL_CHAIN_ID;
+        bool isFork = block.chainid == RSK_MAINNET_CHAIN_ID || block.chainid == RSK_TESTNET_CHAIN_ID;
+        
+        owner = (isLocal || isFork) ? address(this) : config.owner;
+        swapper = (isLocal || isFork) ? address(this) : config.swapper;
+        feeCollector = config.feeCollector;
+        
+        // Create test users (these are not in the config as they're test-specific)
         user = makeAddr(USER_STRING);
         user2 = makeAddr("user2");
-        swapper = makeAddr(SWAPPER_STRING);
-        feeCollector = makeAddr(FEE_COLLECTOR_STRING);
-        
-        // Set the constants to match the variables
-        ADMIN = makeAddr(ADMIN_STRING);
-        SWAPPER = swapper; // Use the same address
 
         // Deal rBTC funds to user
         vm.deal(user, STARTING_RBTC_USER_BALANCE);
         vm.deal(user2, STARTING_RBTC_USER_BALANCE);
-
-        // Deploy DcaOutManager directly (test contract becomes owner/admin)
-        deployDcaOut = new DeployDcaOut();
-        (dcaOutManager, helperConfig) = deployDcaOut.run();
-        HelperConfig.NetworkConfig memory config = helperConfig.getActiveNetworkConfig();
 
         // For fork testing, we need to use mocks instead of real contracts
         // and set up the MoC commission receiver to avoid OutOfGas errors
@@ -140,25 +138,8 @@ contract DcaOutTestBase is Test {
         docToken = MockDoc(config.docTokenAddress);
         mocProxy = MockMocProxy(payable(config.mocProxyAddress));
 
-        // Grant roles - use test contract as admin for local/fork, config admin for live networks
-        // Use the same environment detection logic as the deployment script
-        bool isLocal = block.chainid == ANVIL_CHAIN_ID;
-        bool isFork = block.chainid == RSK_MAINNET_CHAIN_ID || block.chainid == RSK_TESTNET_CHAIN_ID;
-        
-        address admin = (isLocal || isFork) ? address(this) : config.admin;
-        vm.startPrank(admin);
-        dcaOutManager.grantRole(dcaOutManager.SWAPPER_ROLE(), SWAPPER);
-        dcaOutManager.grantRole(dcaOutManager.DEFAULT_ADMIN_ROLE(), ADMIN);
-        vm.stopPrank();
-        
-        // For local/fork testing, ensure test contract has ownership
-        if (isLocal || isFork) {
-            // Transfer ownership to test contract if not already
-            if (dcaOutManager.owner() != address(this)) {
-                vm.prank(dcaOutManager.owner());
-                dcaOutManager.transferOwnership(address(this));
-            }
-        }
+        // Roles and ownership are handled entirely by the deployment script
+        // No additional role management needed in test setup
     }
 
     /*//////////////////////////////////////////////////////////////

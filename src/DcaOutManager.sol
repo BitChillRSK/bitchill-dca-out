@@ -517,7 +517,7 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
      * @notice Grant swapper role to an address
      * @param swapper Address to grant swapper role
      */
-    function grantSwapperRole(address swapper) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function grantSwapperRole(address swapper) external onlyOwner {
         _grantRole(SWAPPER_ROLE, swapper);
         emit DcaOutManager__SwapperSet(swapper);
     }
@@ -526,7 +526,7 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
      * @notice Revoke swapper role from an address
      * @param swapper Address to revoke swapper role
      */
-    function revokeSwapperRole(address swapper) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function revokeSwapperRole(address swapper) external onlyOwner {
         _revokeRole(SWAPPER_ROLE, swapper);
     }
 

@@ -30,7 +30,8 @@ contract DeployDcaOut is DeployBase {
         console2.log("  DOC Token:", config.docTokenAddress);
         console2.log("  MoC Proxy:", config.mocProxyAddress);
         console2.log("  Fee Collector:", config.feeCollector);
-        console2.log("  Admin:", config.admin);
+        console2.log("  Owner:", config.owner);
+        console2.log("  Swapper:", config.swapper);
 
         // Set up fee settings
         IFeeHandler.FeeSettings memory feeSettings = IFeeHandler.FeeSettings({
@@ -78,25 +79,29 @@ contract DeployDcaOut is DeployBase {
 
         console2.log("DcaOutManager deployed at:", address(dcaOutManager));
 
-        // Handle ownership and roles based on environment (following reference pattern)
+        // Handle ownership and roles based on environment
         Environment env = getEnvironment();
         
         if (env == Environment.LOCAL || env == Environment.FORK) {
-            console2.log("Local/Fork deployment - deployer retains ownership and admin role");
-            // For local/fork testing, grant the caller (test contract) the DEFAULT_ADMIN_ROLE
-            dcaOutManager.grantRole(dcaOutManager.DEFAULT_ADMIN_ROLE(), msg.sender);
-            console2.log("DEFAULT_ADMIN_ROLE granted to deployer");
-            // For local/fork testing, grant the caller (test contract) the SWAPPER_ROLE
-            dcaOutManager.grantRole(dcaOutManager.SWAPPER_ROLE(), msg.sender);
-            console2.log("SWAPPER_ROLE granted to deployer");
+            console2.log("Local/Fork deployment - transferring ownership to caller");
+            // For local/fork testing, transfer ownership from broadcaster to the caller (test contract)
+            address caller = msg.sender;
+            dcaOutManager.transferOwnership(caller);
+            console2.log("Ownership transferred to caller:", caller);
+            // Grant the caller the DEFAULT_ADMIN_ROLE
+            dcaOutManager.grantRole(dcaOutManager.DEFAULT_ADMIN_ROLE(), caller);
+            console2.log("DEFAULT_ADMIN_ROLE granted to caller");
+            // For local/fork testing, grant the caller the SWAPPER_ROLE
+            dcaOutManager.grantRole(dcaOutManager.SWAPPER_ROLE(), caller);
+            console2.log("SWAPPER_ROLE granted to caller");
         } else {
-            // For live networks (testnet/mainnet), transfer ownership to config admin
-            console2.log("Live network deployment - transferring ownership to admin:", config.admin);
-            dcaOutManager.transferOwnership(config.admin);
+            // For live networks (testnet/mainnet), transfer ownership to config owner
+            console2.log("Live network deployment - transferring ownership to owner:", config.owner);
+            dcaOutManager.transferOwnership(config.owner);
             
-            // Grant admin the DEFAULT_ADMIN_ROLE
-            dcaOutManager.grantRole(dcaOutManager.DEFAULT_ADMIN_ROLE(), config.admin);
-            console2.log("DEFAULT_ADMIN_ROLE granted to admin");
+            // Grant owner the DEFAULT_ADMIN_ROLE
+            dcaOutManager.grantRole(dcaOutManager.DEFAULT_ADMIN_ROLE(), config.owner);
+            console2.log("DEFAULT_ADMIN_ROLE granted to owner");
             
             console2.log("Ownership transferred successfully");
             

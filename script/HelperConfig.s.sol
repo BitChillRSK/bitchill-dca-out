@@ -21,7 +21,7 @@ contract HelperConfig is Script {
         address docTokenAddress;
         address mocProxyAddress;
         address feeCollector;
-        address admin;
+        address owner;
         address swapper;
     }
 
@@ -69,7 +69,7 @@ contract HelperConfig is Script {
             docTokenAddress: DOC_TOKEN_MAINNET,
             mocProxyAddress: MOC_PROXY_MAINNET,
             feeCollector: FEE_COLLECTOR_MAINNET,
-            admin: ADMIN_MAINNET,
+            owner: ADMIN_MAINNET, // Same as admin in production
             swapper: SWAPPER_MAINNET
         });
     }
@@ -83,7 +83,7 @@ contract HelperConfig is Script {
             docTokenAddress: DOC_TOKEN_TESTNET,
             mocProxyAddress: MOC_PROXY_TESTNET,
             feeCollector: FEE_COLLECTOR_TESTNET,
-            admin: ADMIN_TESTNET,
+            owner: ADMIN_TESTNET, // Same as admin in production
             swapper: SWAPPER_TESTNET
         });
     }
@@ -120,7 +120,7 @@ contract HelperConfig is Script {
             docTokenAddress: mockDocToken,
             mocProxyAddress: mockMocProxy,
             feeCollector: msg.sender, // Use deployer as fee collector in local
-            admin: msg.sender, // Use deployer as admin in local
+            owner: msg.sender, // Use deployer as owner in local
             swapper: msg.sender // Use deployer as swapper in local
         });
     }

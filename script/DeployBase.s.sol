@@ -20,27 +20,42 @@ contract DeployBase is Script {
         Environment environment;
     }
 
-    mapping(Environment => address) internal adminAddresses;
+    mapping(Environment => address) internal ownerAddresses;
+    mapping(Environment => address) internal swapperAddresses;
     mapping(Environment => address) internal feeCollectorAddresses;
     Environment environment;
 
     constructor() {
-        // Admin addresses
-        adminAddresses[Environment.LOCAL] = makeAddr(OWNER_STRING);
-        adminAddresses[Environment.FORK] = makeAddr(OWNER_STRING);
-        adminAddresses[Environment.TESTNET] = 0x226E865Ab298e542c5e5098694eFaFfe111F93D3;
-        adminAddresses[Environment.MAINNET] = 0x226E865Ab298e542c5e5098694eFaFfe111F93D3;
+        // Owner addresses (unified admin/owner role)
+        ownerAddresses[Environment.LOCAL] = makeAddr(OWNER_STRING);
+        ownerAddresses[Environment.FORK] = makeAddr(OWNER_STRING);
+        ownerAddresses[Environment.TESTNET] = ADMIN_TESTNET; // Same as admin in production
+        ownerAddresses[Environment.MAINNET] = ADMIN_MAINNET; // Same as admin in production
+
+        // Swapper addresses
+        swapperAddresses[Environment.LOCAL] = makeAddr(SWAPPER_STRING);
+        swapperAddresses[Environment.FORK] = makeAddr(SWAPPER_STRING);
+        swapperAddresses[Environment.TESTNET] = SWAPPER_TESTNET;
+        swapperAddresses[Environment.MAINNET] = SWAPPER_MAINNET;
 
         // Fee collector addresses
         feeCollectorAddresses[Environment.LOCAL] = makeAddr(FEE_COLLECTOR_STRING);
         feeCollectorAddresses[Environment.FORK] = makeAddr(FEE_COLLECTOR_STRING);
-        feeCollectorAddresses[Environment.TESTNET] = 0x226E865Ab298e542c5e5098694eFaFfe111F93D3;
-        feeCollectorAddresses[Environment.MAINNET] = 0x226E865Ab298e542c5e5098694eFaFfe111F93D3;
+        feeCollectorAddresses[Environment.TESTNET] = FEE_COLLECTOR_TESTNET;
+        feeCollectorAddresses[Environment.MAINNET] = FEE_COLLECTOR_MAINNET;
 
         environment = getEnvironment();
 
         console.log("Environment:", uint256(environment)); // 0=LOCAL, 1=FORK, 2=TESTNET, 3=MAINNET
         console.log("Chain ID:", block.chainid);
+    }
+
+    function getOwner(Environment deploymentEnvironment) internal view returns (address) {
+        return ownerAddresses[deploymentEnvironment];
+    }
+
+    function getSwapper(Environment deploymentEnvironment) internal view returns (address) {
+        return swapperAddresses[deploymentEnvironment];
     }
 
     function getFeeCollector(Environment deploymentEnvironment) internal view returns (address) {

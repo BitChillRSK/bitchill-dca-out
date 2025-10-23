@@ -2,7 +2,7 @@
 pragma solidity 0.8.19;
 
 import {Test, console2} from "forge-std/Test.sol";
-import {DcaOutTestBase} from "./DcaOutTestBase.s.sol";
+import {DcaOutTestBase} from "./DcaOutTestBase.t.sol";
 import {IDcaOutManager} from "../src/interfaces/IDcaOutManager.sol";
 import {IFeeHandler} from "../src/interfaces/IFeeHandler.sol";
 import "../test/Constants.sol";
@@ -533,7 +533,7 @@ contract DcaOutManagerTest is DcaOutTestBase {
         assertFalse(dcaOutManager.hasRole(dcaOutManager.SWAPPER_ROLE(), newSwapper), "Swapper should not have role");
     }
 
-    function testCannotSetMinSalePeriodIfNotAdmin() public {
+    function testCannotSetMinSalePeriodIfNotOwner() public {
         vm.startPrank(user);
         
         vm.expectRevert("Ownable: caller is not the owner");
@@ -542,7 +542,7 @@ contract DcaOutManagerTest is DcaOutTestBase {
         vm.stopPrank();
     }
 
-    function testCannotSetMaxSchedulesIfNotAdmin() public {
+    function testCannotSetMaxSchedulesIfNotOwner() public {
         vm.startPrank(user);
         
         vm.expectRevert("Ownable: caller is not the owner");
@@ -559,7 +559,7 @@ contract DcaOutManagerTest is DcaOutTestBase {
         vm.stopPrank();
 
         // Test that owner can call this function
-        vm.startPrank(owner);
+        vm.startPrank(address(this)); // Test contract is the owner for local testing
         dcaOutManager.setMaxSchedulesPerUser(5);
         assertEq(dcaOutManager.getMaxSchedulesPerUser(), 5, "Max schedules per user should be updated");
         vm.stopPrank();
