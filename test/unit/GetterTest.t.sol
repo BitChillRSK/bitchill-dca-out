@@ -58,11 +58,11 @@ contract GetterTest is DcaOutTestBase {
         vm.stopPrank();
     }
 
-    function testGetMyScheduleRbtcAmount() public {
+    function testgetMyScheduleSaleAmount() public {
         vm.startPrank(user);
         dcaOutManager.createDcaOutSchedule{value: 1 ether}(SALE_AMOUNT, SALE_PERIOD);
         
-        uint256 amount = dcaOutManager.getMyScheduleRbtcAmount(0);
+        uint256 amount = dcaOutManager.getMyScheduleSaleAmount(0);
         assertEq(amount, SALE_AMOUNT, "Should return sale amount");
         vm.stopPrank();
     }
@@ -117,7 +117,7 @@ contract GetterTest is DcaOutTestBase {
         assertEq(schedule.rbtcBalance, 1 ether, "Should have initial deposit");
     }
 
-    function testGetScheduleRbtcBalance() public {
+    function testgetScheduleRbtcBalance() public {
         vm.startPrank(user);
         dcaOutManager.createDcaOutSchedule{value: 1 ether}(SALE_AMOUNT, SALE_PERIOD);
         vm.stopPrank();
@@ -131,7 +131,7 @@ contract GetterTest is DcaOutTestBase {
         dcaOutManager.createDcaOutSchedule{value: 1 ether}(SALE_AMOUNT, SALE_PERIOD);
         vm.stopPrank();
 
-        uint256 amount = dcaOutManager.getScheduleRbtcAmount(user, 0);
+        uint256 amount = dcaOutManager.getScheduleSaleAmount(user, 0);
         assertEq(amount, SALE_AMOUNT, "Wrong rBTC amount");
     }
 

@@ -8,42 +8,11 @@ import {IFeeHandler} from "../../src/interfaces/IFeeHandler.sol";
 import {HelperConfig} from "../../script/HelperConfig.s.sol";
 import {MockDoc} from "../mocks/MockDoc.sol";
 import {MockMocProxy} from "../mocks/MockMocProxy.sol";
+import {DcaOutManagerTestHelper} from "./DcaOutManagerTestHelper.sol";
 
 // Test helper contract to access internal functions
-contract DcaOutManagerTestHelper is DcaOutManager {
-    constructor(
-        address docTokenAddress,
-        address mocProxyAddress,
-        address feeCollector,
-        IFeeHandler.FeeSettings memory feeSettings,
-        uint256 minSalePeriod,
-        uint256 maxSchedulesPerUser,
-        uint256 minSaleAmount,
-        uint256 mocCommission
-    ) DcaOutManager(
-            docTokenAddress,
-            mocProxyAddress,
-            feeCollector,
-            feeSettings,
-            minSalePeriod,
-            maxSchedulesPerUser,
-            minSaleAmount,
-            mocCommission
-        ) {}
-
-    // Expose internal functions for testing
-    function calculateFee(uint256 docAmount) external view returns (uint256) {
-        return _calculateFee(docAmount);
-    }
-
-    function calculateFeeAndNetAmounts(uint256 docAmount) external view returns (uint256 fee, uint256 netAmount) {
-        fee = _calculateFee(docAmount);
-        netAmount = docAmount - fee;
-    }
-}
 
 contract EdgeCaseTest is DcaOutTestBase {
-    DcaOutManagerTestHelper public testHelper;
 
     function setUp() public override {
         super.setUp();

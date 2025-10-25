@@ -117,16 +117,16 @@ contract HelperConfig is Script {
         emit HelperConfig__CreatedMockDoc(mockDocToken);
         console2.log("Mock DOC deployed at:", mockDocToken);
 
-        // Deploy mock MoC proxy
-        MockMocProxy mockMoc = new MockMocProxy(mockDocToken);
-        mockMocProxy = address(mockMoc);
-        emit HelperConfig__CreatedMockMocProxy(mockMocProxy);
-        console2.log("Mock MoC Proxy deployed at:", mockMocProxy);
-
-        // Deploy mock MoC oracle
+        // Deploy mock MoC oracle first
         MockMocOracle mockOracle = new MockMocOracle();
         mockMocOracle = address(mockOracle);
         console2.log("Mock MoC Oracle deployed at:", mockMocOracle);
+
+        // Deploy mock MoC proxy with oracle address
+        MockMocProxy mockMoc = new MockMocProxy(mockDocToken, mockMocOracle);
+        mockMocProxy = address(mockMoc);
+        emit HelperConfig__CreatedMockMocProxy(mockMocProxy);
+        console2.log("Mock MoC Proxy deployed at:", mockMocProxy);
 
         vm.stopBroadcast();
 

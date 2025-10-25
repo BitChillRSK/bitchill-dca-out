@@ -8,6 +8,8 @@ import {IFeeHandler} from "../../src/interfaces/IFeeHandler.sol";
 import {ICoinPairPrice} from "../interfaces/ICoinPairPrice.sol";
 import {DeployDcaOut} from "../../script/DeployDcaOut.s.sol";
 import {HelperConfig, MockDoc, MockMocProxy} from "../../script/HelperConfig.s.sol";
+import {DcaOutManagerTestHelper} from "./DcaOutManagerTestHelper.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import "../Constants.sol";
 import "../../script/Constants.sol";
 
@@ -27,6 +29,7 @@ contract DcaOutTestBase is Test {
     MockDoc public docToken;
     MockMocProxy public mocProxy;
     ICoinPairPrice public mocOracle;
+    DcaOutManagerTestHelper public testHelper;
 
     address public owner;
     address public user;
@@ -141,6 +144,25 @@ contract DcaOutTestBase is Test {
         mocProxy = MockMocProxy(payable(config.mocProxyAddress));
         mocOracle = ICoinPairPrice(config.mocOracleAddress);
 
+        // Deploy test helper for fee calculations
+        IFeeHandler.FeeSettings memory feeSettings = IFeeHandler.FeeSettings({
+            minFeeRate: MIN_FEE_RATE,
+            maxFeeRate: MAX_FEE_RATE_TEST,
+            feePurchaseLowerBound: FEE_PURCHASE_LOWER_BOUND,
+            feePurchaseUpperBound: FEE_PURCHASE_UPPER_BOUND
+        });
+        
+        testHelper = new DcaOutManagerTestHelper(
+            config.docTokenAddress,
+            config.mocProxyAddress,
+            config.feeCollector,
+            feeSettings,
+            MIN_SALE_PERIOD_TESTNET,
+            MAX_SCHEDULES_PER_USER,
+            MIN_SALE_AMOUNT_TESTNET,
+            MOC_COMMISSION
+        );
+
         // Roles and ownership are handled entirely by the deployment script
         // No additional role management needed in test setup
     }
@@ -198,25 +220,32 @@ contract DcaOutTestBase is Test {
         uint256 userDocBalanceBefore = dcaOutManager.getUserDocBalance(userAddress);
         uint256 contractDocBalanceBefore = docToken.balanceOf(address(dcaOutManager));
         
-        // Get oracle price for more precise assertions
-        (, bool isValid,) = mocOracle.getPriceInfo();
+        // Get oracle price for precise assertions
+        (uint256 rbtcPrice, bool isValid,) = mocOracle.getPriceInfo();
         assertTrue(isValid, "Oracle price should be valid");
-        
-        // Calculate expected DOC amount based on oracle price (for future use)
-        // uint256 expectedDocAmount = (scheduleBefore.rbtcSaleAmount * oraclePrice) / 1e18;
         
         // Check event emission (partial match - rbtcSpent and docReceived are unpredictable)
         vm.expectEmit(true, true, true, false);
         emit DcaOutManager__RbtcSold(userAddress, scheduleId, scheduleBefore.rbtcSaleAmount, 0, 0, 0);
-        
         vm.prank(swapper);
         dcaOutManager.sellRbtc(userAddress, scheduleIndex, scheduleId);
         
         // Verify execution results
         IDcaOutManager.DcaOutSchedule memory scheduleAfter = dcaOutManager.getSchedule(userAddress, scheduleIndex);
+        uint256 rbtcSpent = scheduleBefore.rbtcBalance - scheduleAfter.rbtcBalance;
         uint256 userDocBalanceAfter = dcaOutManager.getUserDocBalance(userAddress);
         uint256 contractDocBalanceAfter = docToken.balanceOf(address(dcaOutManager));
-        
+
+        // uint256 rbtcToMintDoc = scheduleBefore.rbtcSaleAmount * PRECISION_FACTOR / (PRECISION_FACTOR + MOC_COMMISSION);
+        uint256 rbtcToMintDoc = Math.mulDiv(scheduleBefore.rbtcSaleAmount, PRECISION_FACTOR, PRECISION_FACTOR + MOC_COMMISSION, Math.Rounding.Up);
+        uint256 commission = rbtcToMintDoc * MOC_COMMISSION / PRECISION_FACTOR;
+        assertEq(rbtcSpent, rbtcToMintDoc + commission, "rBTC spent should be equal to the rBTC to mint DOC plus commission");
+        assertEq(rbtcSpent, scheduleBefore.rbtcSaleAmount, "rBTC spent should be within 0.1% of sale amount");
+
+        // Calculate expected DOC amount based on oracle price
+        uint256 expectedDocMinted = (rbtcToMintDoc * rbtcPrice) / 1e18;
+        uint256 expectedDocAfterFees = expectedDocMinted - testHelper.calculateFee(expectedDocMinted);
+
         // Check that lastSaleTimestamp was updated
         assertTrue(scheduleAfter.lastSaleTimestamp > scheduleBefore.lastSaleTimestamp, "Last sale timestamp should be updated");
         
@@ -229,17 +258,12 @@ contract DcaOutTestBase is Test {
         // Check that rBTC balance decreased (accounting for potential change from MoC)
         assertTrue(scheduleAfter.rbtcBalance < scheduleBefore.rbtcBalance, "rBTC balance should decrease");
         
-        // More precise assertions using oracle data
-        uint256 docReceived = userDocBalanceAfter - userDocBalanceBefore;
-        uint256 docReceivedFromMoC = contractDocBalanceAfter - contractDocBalanceBefore;
-        
         // Check that received DOC is reasonable
-        assertTrue(docReceived > 0, "User should receive some DOC");
-        assertTrue(docReceivedFromMoC > 0, "Contract should receive some DOC from MoC");
-        
-        // Note: Oracle-based precise assertions can be added later once the mock oracle
-        // behavior is better aligned with the actual MoC proxy behavior
+        uint256 docReceived = userDocBalanceAfter - userDocBalanceBefore;
+        assertEq(docReceived, expectedDocAfterFees, "DOC received should be equal to expected after fees");
+        assertEq(contractDocBalanceAfter - contractDocBalanceBefore, docReceived, "Contract should receive the same amount of DOC as the user");
     }
+
 
     /**
      * @notice Execute batch rBTC sales
@@ -264,24 +288,31 @@ contract DcaOutTestBase is Test {
             scheduleRbtcBalancesBefore[i] = schedule.rbtcBalance;
         }
         
-        // uint256 contractDocBalanceBefore = docToken.balanceOf(address(dcaOutManager));
+        uint256 contractDocBalanceBefore = docToken.balanceOf(address(dcaOutManager));
+        uint256 rBtcBalanceBefore = address(dcaOutManager).balance;
         
-        // Get oracle price for more precise assertions
-        (, bool isValid,) = mocOracle.getPriceInfo();
+        // Get oracle price for precise assertions
+        (uint256 rbtcPrice, bool isValid,) = mocOracle.getPriceInfo();
         assertTrue(isValid, "Oracle price should be valid");
         
-        // Calculate expected total DOC amount based on oracle price
-        uint256 expectedTotalDocAmount = (totalRbtcToSpend * 1e18) / 1e18; // Simplified for now
+        // Calculate expected total DOC amount based on oracle price using precise calculations
+        uint256 totalRbtcToMintDoc = Math.mulDiv(totalRbtcToSpend, PRECISION_FACTOR, PRECISION_FACTOR + MOC_COMMISSION, Math.Rounding.Up);
+        uint256 expectedTotalDocMinted = (totalRbtcToMintDoc * rbtcPrice) / 1e18;
+        
+        // Calculate fees individually for each user and sum them up
+        uint256 expectedTotalDocAfterFees = expectedTotalDocMinted - _calculateTotalBatchPurchaseFee(users, scheduleIndexes, rbtcPrice);
         
         // The exact amounts of rBTC spent and DOC received are unpredictable
         vm.expectEmit(true, false, false, false);
-        emit DcaOutManager__RbtcSoldBatch(totalRbtcToSpend, 0, 0, 0, users.length);
+        emit DcaOutManager__RbtcSoldBatch(totalRbtcToSpend, 0, 0, 0, 0);
         
         vm.prank(swapper);
         dcaOutManager.batchSellRbtc(users, scheduleIndexes, scheduleIds, totalRbtcToSpend);
         
-        // Verify batch execution results
-        _verifyBatchExecutionResults(users, scheduleIndexes, userDocBalancesBefore, scheduleRbtcBalancesBefore, expectedTotalDocAmount);
+        assertEq(rBtcBalanceBefore - address(dcaOutManager).balance, totalRbtcToSpend, "rBTC balance should decrease by total rBTC to spend");
+        assertEq(docToken.balanceOf(address(dcaOutManager)) - contractDocBalanceBefore, expectedTotalDocAfterFees, "Contract should receive expected DOC amount");
+        // Verify batch execution results for each user
+        _verifyBatchExecutionResults(users, scheduleIndexes, userDocBalancesBefore, scheduleRbtcBalancesBefore, expectedTotalDocAfterFees, totalRbtcToSpend, rbtcPrice);
     }
     
     function _verifyBatchExecutionResults(
@@ -289,29 +320,30 @@ contract DcaOutTestBase is Test {
         uint256[] memory scheduleIndexes,
         uint256[] memory userDocBalancesBefore,
         uint256[] memory scheduleRbtcBalancesBefore,
-        uint256 /* expectedTotalDocAmount */
+        uint256 expectedTotalDocAfterFees,
+        uint256 totalSaleAmount,
+        uint256 rbtcPrice
+
     ) internal view {
-        uint256 contractDocBalanceAfter = docToken.balanceOf(address(dcaOutManager));
-        assertTrue(contractDocBalanceAfter > 0, "Contract should receive DOC from MoC");
-        
         uint256 totalDocReceived = 0;
+        uint256 totalRbtcSpent = 0;
+        
         for (uint256 i; i < users.length; ++i) {
-            // Check that user received DOC
+            // Check that user received expected DOC amount
             uint256 userDocBalanceAfter = dcaOutManager.getUserDocBalance(users[i]);
-            assertTrue(userDocBalanceAfter > userDocBalancesBefore[i], "User should receive DOC");
+            uint256 userRbtcToMint = Math.mulDiv(dcaOutManager.getScheduleSaleAmount(users[i], scheduleIndexes[i]), PRECISION_FACTOR, PRECISION_FACTOR + MOC_COMMISSION, Math.Rounding.Up); 
+            uint256 contractExpectedDocReceived = userRbtcToMint * rbtcPrice / 1e18;
+            uint256 userExpectedDocReceived = contractExpectedDocReceived - testHelper.calculateFee(contractExpectedDocReceived);
+            assertEq(userDocBalanceAfter - userDocBalancesBefore[i], userExpectedDocReceived, "User should receive expected DOC amount");
             
-            // Check that rBTC balance decreased (accounting for potential change from MoC)
-            uint256 currentBalance = dcaOutManager.getScheduleRbtcBalance(users[i], scheduleIndexes[i]);
-            assertTrue(currentBalance <= scheduleRbtcBalancesBefore[i], "rBTC balance should not increase");
-            
-            totalDocReceived += (userDocBalanceAfter - userDocBalancesBefore[i]);
+            totalDocReceived += userDocBalanceAfter - userDocBalancesBefore[i];
+            totalRbtcSpent += scheduleRbtcBalancesBefore[i] - dcaOutManager.getScheduleRbtcBalance(users[i], scheduleIndexes[i]);
         }
         
-        // More precise assertions using oracle data
-        assertTrue(totalDocReceived > 0, "Total DOC received should be positive");
-        
-        // Note: Oracle-based precise assertions can be added later once the mock oracle
-        // behavior is better aligned with the actual MoC proxy behavior
+        // Exact assertions matching single execution precision
+        assertEq(totalRbtcSpent, totalSaleAmount, "Total rBTC spent should equal total sale amount");
+        console2.log("precission loss", expectedTotalDocAfterFees - totalDocReceived);
+        assertEq(totalDocReceived, expectedTotalDocAfterFees, "Total DOC received should be equal to expected after fees");
     }
 
     /**
@@ -384,5 +416,28 @@ contract DcaOutTestBase is Test {
         
         assertEq(userDocBalanceAfter, userDocBalanceBefore - amount, "User DOC balance should decrease by withdrawal amount");
         assertEq(userDocTokenBalanceAfter, userDocTokenBalanceBefore + amount, "User should receive DOC tokens");
+    }
+
+    /**
+     * @notice Calculate total fees for multiple users individually
+     * @param users Array of user addresses
+     * @param scheduleIndexes Array of schedule indexes
+     * @param rbtcPrice Oracle price for rBTC
+     * @return Total fees calculated individually
+     */
+    function _calculateTotalBatchPurchaseFee(
+        address[] memory users,
+        uint256[] memory scheduleIndexes,
+        uint256 rbtcPrice
+    ) internal view returns (uint256) {
+        uint256 totalFees = 0;
+        for (uint256 i; i < users.length; ++i) {
+            IDcaOutManager.DcaOutSchedule memory schedule = dcaOutManager.getSchedule(users[i], scheduleIndexes[i]);
+            uint256 userRbtcToMintDoc = Math.mulDiv(schedule.rbtcSaleAmount, PRECISION_FACTOR, PRECISION_FACTOR + MOC_COMMISSION, Math.Rounding.Up);
+            uint256 userExpectedDocMinted = (userRbtcToMintDoc * rbtcPrice) / 1e18;
+            uint256 userFee = testHelper.calculateFee(userExpectedDocMinted);
+            totalFees += userFee;
+        }
+        return totalFees;
     }
 }

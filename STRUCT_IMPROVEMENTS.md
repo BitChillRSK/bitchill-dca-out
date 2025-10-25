@@ -73,7 +73,7 @@ function getSchedules(address user) external view returns (DcaOutSchedule[] memo
 function getMyScheduleRbtcBalance(uint256 scheduleIndex) external view returns (uint256);
 function getScheduleRbtcBalance(address user, uint256 scheduleIndex) external view returns (uint256);
 
-function getMyScheduleRbtcAmount(uint256 scheduleIndex) external view returns (uint256);
+function getMyScheduleSaleAmount(uint256 scheduleIndex) external view returns (uint256);
 function getScheduleRbtcAmount(address user, uint256 scheduleIndex) external view returns (uint256);
 
 function getMySchedulePeriod(uint256 scheduleIndex) external view returns (uint256);

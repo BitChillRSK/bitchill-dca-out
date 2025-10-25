@@ -2,7 +2,8 @@
 pragma solidity 0.8.19;
 
 // Protocol configuration
-uint256 constant MOC_COMMISSION = 2e15; // 0.2% MoC commission
+uint256 constant MOC_COMMISSION = 15e14; // 0.15% MoC commission
+uint256 constant PRECISION_FACTOR = 1e18;
 
 // Production parameters
 uint256 constant MIN_SALE_AMOUNT = 0.001 ether; // at least 0.001 rBTC per sale
@@ -44,7 +45,7 @@ string constant SWAPPER_STRING = "swapper";
 string constant FEE_COLLECTOR_STRING = "feeCollector";
 
 // Test values
-uint256 constant BTC_PRICE = 50_000; // 1 BTC = 50,000 DOC
+uint256 constant BTC_PRICE = 100_000; // 1 BTC = 100,000 DOC
 
 // Token holders on mainnet with significant balances (for fork testing)
 address constant DOC_HOLDER = 0x65d189e839aF28B78567bD7255f3f796495141bc; // Large DOC holder on RSK mainnet
