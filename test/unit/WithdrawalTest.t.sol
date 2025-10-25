@@ -38,8 +38,6 @@ contract WithdrawalTest is DcaOutTestBase {
         // Withdraw DOC
         uint256 withdrawAmount = docBalance / 2;
         
-        // Note: DocWithdrawn event test removed due to exact matching issues
-        
         vm.startPrank(user);
         dcaOutManager.withdrawDoc(withdrawAmount);
         vm.stopPrank();
