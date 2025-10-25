@@ -81,4 +81,13 @@ contract WithdrawalTest is DcaOutTestBase {
             assertTrue(true, "No DOC balance generated, test skipped");
         }
     }
+
+    function testCannotWithdrawDocWithZeroAmount() public {
+        vm.startPrank(user);
+        
+        vm.expectRevert(abi.encodeWithSelector(IDcaOutManager.DcaOutManager__WithdrawalAmountCantBeThanZero.selector));
+        dcaOutManager.withdrawDoc(0);
+        
+        vm.stopPrank();
+    }
 }

@@ -4,11 +4,13 @@ pragma solidity ^0.8.19;
 import {Test, console2} from "forge-std/Test.sol";
 import {DcaOutTestBase} from "./DcaOutTestBase.t.sol";
 import {DcaOutManager} from "../../src/DcaOutManager.sol";
+import {IDcaOutManager} from "../../src/interfaces/IDcaOutManager.sol";
 import {IFeeHandler} from "../../src/interfaces/IFeeHandler.sol";
 import {HelperConfig} from "../../script/HelperConfig.s.sol";
 import {MockDoc} from "../mocks/MockDoc.sol";
 import {MockMocProxy} from "../mocks/MockMocProxy.sol";
 import {DcaOutManagerTestHelper} from "./DcaOutManagerTestHelper.sol";
+import "../Constants.sol";
 
 // Test helper contract to access internal functions
 
@@ -152,39 +154,48 @@ contract EdgeCaseTest is DcaOutTestBase {
     }
 
     function testFeeCalculationProgression() public view {
-        // Test that fee calculation follows expected progression
+        // Test that fee rate decreases as amounts get larger (progressive fee structure)
         
         uint256 baseAmount = 1000 ether;
         uint256 baseFee = testHelper.calculateFee(baseAmount);
+        uint256 baseFeeRate = (baseFee * 1e18) / baseAmount; // Fee rate in basis points
         
         // Test with 2x amount
         uint256 doubleAmount = baseAmount * 2;
         uint256 doubleFee = testHelper.calculateFee(doubleAmount);
+        uint256 doubleFeeRate = (doubleFee * 1e18) / doubleAmount;
         
-        // Fee should increase with amount
-        assertTrue(doubleFee > baseFee, "Fee should increase with amount");
+        // Fee rate should decrease as amount increases (progressive structure)
+        assertTrue(doubleFeeRate < baseFeeRate, "Fee rate should decrease with larger amounts");
         
         // Test with 10x amount
         uint256 tenXAmount = baseAmount * 10;
         uint256 tenXFee = testHelper.calculateFee(tenXAmount);
+        uint256 tenXFeeRate = (tenXFee * 1e18) / tenXAmount;
         
-        // Fee should continue to increase
-        assertTrue(tenXFee > doubleFee, "Fee should continue to increase with larger amounts");
+        // Fee rate should continue to decrease
+        assertTrue(tenXFeeRate < doubleFeeRate, "Fee rate should continue to decrease with larger amounts");
+        
+        // Test with 100x amount
+        uint256 hundredXAmount = baseAmount * 100;
+        uint256 hundredXFee = testHelper.calculateFee(hundredXAmount);
+        uint256 hundredXFeeRate = (hundredXFee * 1e18) / hundredXAmount;
+        
+        // Fee rate should be lowest for largest amounts
+        assertTrue(hundredXFeeRate < tenXFeeRate, "Fee rate should be lowest for largest amounts");
+    }
+    
+    /*//////////////////////////////////////////////////////////////
+                            MISSING BRANCH COVERAGE TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    function testCannotReceiveRbtcFromNonMoC() public {
+        // Try to send rBTC to contract from non-MoC address
+        address nonMoC = makeAddr("nonMoC");
+        vm.expectRevert(abi.encodeWithSelector(IDcaOutManager.DcaOutManager__NotMoC.selector, nonMoC));
+        vm.prank(nonMoC);
+        (bool success,) = address(dcaOutManager).call{value: 1 ether}("");
+        assertFalse(success, "Should not be able to send rBTC from non-MoC address");
     }
 
-    function testFeeCalculationConsistency() public view {
-        // Test that fee calculation is consistent
-        
-        uint256 amount = 150000 ether;
-        uint256 fee1 = testHelper.calculateFee(amount);
-        uint256 fee2 = testHelper.calculateFee(amount);
-        
-        assertEq(fee1, fee2, "Fee calculation should be consistent");
-        
-        // Test with different amounts
-        uint256 amount2 = 200000 ether;
-        uint256 fee3 = testHelper.calculateFee(amount2);
-        
-        assertTrue(fee3 > fee1, "Fee should be higher for larger amounts");
-    }
 }

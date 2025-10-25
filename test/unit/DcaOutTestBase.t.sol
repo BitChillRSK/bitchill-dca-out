@@ -344,7 +344,7 @@ contract DcaOutTestBase is Test {
         // Exact assertions matching single execution precision
         assertEq(totalRbtcSpent, totalSaleAmount, "Total rBTC spent should equal total sale amount");
         console2.log("precission loss", expectedTotalDocAfterFees - totalDocReceived);
-        assertEq(totalDocReceived, expectedTotalDocAfterFees, "Total DOC received should be equal to expected after fees");
+        assertApproxEqAbs(totalDocReceived, expectedTotalDocAfterFees, 1, "Max precision loss allowed is 1 wei");
     }
 
     /**

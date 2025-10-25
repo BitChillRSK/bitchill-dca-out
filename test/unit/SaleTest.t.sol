@@ -7,21 +7,21 @@ import {IDcaOutManager} from "../../src/interfaces/IDcaOutManager.sol";
 import "../Constants.sol";
 
 /**
- * @title ExecutionTest
+ * @title SaleTest
  * @author BitChill team: Antonio Rodríguez-Ynyesto
- * @notice Test suite for DCA Out Manager execution (selling rBTC)
+ * @notice Test suite for DCA Out Manager sales (selling rBTC for DOC)
  */
-contract ExecutionTest is DcaOutTestBase {
+contract SaleTest is DcaOutTestBase {
 
     function setUp() public override {
         super.setUp();
     }
 
     /*//////////////////////////////////////////////////////////////
-                            SINGLE EXECUTION TESTS
+                            SINGLE SALE TESTS
     //////////////////////////////////////////////////////////////*/
 
-    function testExecuteMint() public {
+    function testSellRbtc() public {
         // User creates schedule with deposit
         bytes32 scheduleId = createDcaOutSchedule(user, SALE_AMOUNT, SALE_PERIOD, 1 ether);
         
@@ -29,7 +29,7 @@ contract ExecutionTest is DcaOutTestBase {
         executeSale(user, 0, scheduleId);
     }
 
-    function testCannotExecuteMintIfNotSwapper() public {
+    function testCannotSellRbtcIfNotSwapper() public {
         bytes32 scheduleId = createDcaOutSchedule(user, SALE_AMOUNT, SALE_PERIOD, 1 ether);
 
         // Use a non-swapper address
@@ -39,7 +39,7 @@ contract ExecutionTest is DcaOutTestBase {
         dcaOutManager.sellRbtc(user, 0, scheduleId);
     }
 
-    function testCannotExecuteMintIfNotReady() public {
+    function testCannotSellRbtcIfNotReady() public {
         bytes32 scheduleId = createDcaOutSchedule(user, SALE_AMOUNT, SALE_PERIOD, 1 ether);
 
         // Execute first sale
@@ -70,10 +70,10 @@ contract ExecutionTest is DcaOutTestBase {
     }
 
     /*//////////////////////////////////////////////////////////////
-                            BATCH EXECUTION TESTS
+                            BATCH SALE TESTS
     //////////////////////////////////////////////////////////////*/
 
-    function testBatchExecuteMint() public {
+    function testBatchSellRbtc() public {
         // User 1 creates schedule
         bytes32 scheduleId1 = createDcaOutSchedule(user, SALE_AMOUNT, SALE_PERIOD, 1 ether);
 
@@ -171,5 +171,42 @@ contract ExecutionTest is DcaOutTestBase {
         vm.expectRevert();
         vm.prank(swapper);
         dcaOutManager.batchSellRbtc(users, scheduleIndexes, scheduleIds, 1 ether);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            SALE ERROR TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    function testCannotSellRbtcWithWrongScheduleId() public {
+        // Create a schedule
+        bytes32 scheduleId = createDcaOutSchedule(user, SALE_AMOUNT, SALE_PERIOD, 1 ether);
+        
+        // Try to sell with wrong schedule ID
+        bytes32 wrongScheduleId = keccak256("wrong");
+        vm.expectRevert(abi.encodeWithSelector(IDcaOutManager.DcaOutManager__ScheduleIdAndIndexMismatch.selector, wrongScheduleId, scheduleId));
+        vm.prank(swapper);
+        dcaOutManager.sellRbtc(user, 0, wrongScheduleId);
+    }
+
+    function testCannotSellRbtcBeforePeriodElapsed() public {
+        // Create a schedule
+        bytes32 scheduleId = createDcaOutSchedule(user, SALE_AMOUNT, SALE_PERIOD, 1 ether);
+        
+        // Execute once to set lastSaleTimestamp
+        vm.prank(swapper);
+        dcaOutManager.sellRbtc(user, 0, scheduleId);
+        
+        // Try to sell again immediately (before period elapsed)
+        vm.expectRevert(abi.encodeWithSelector(IDcaOutManager.DcaOutManager__SalePeriodNotElapsed.selector, block.timestamp, block.timestamp + SALE_PERIOD, block.timestamp));
+        vm.prank(swapper);
+        dcaOutManager.sellRbtc(user, 0, scheduleId);
+    }
+
+    function testCannotSellRbtcWithInvalidScheduleIndex() public {
+        // Try to sell with non-existent schedule index
+        bytes32 fakeScheduleId = keccak256("fake");
+        vm.expectRevert(abi.encodeWithSelector(IDcaOutManager.DcaOutManager__InexistentScheduleIndex.selector, user, 0, 0));
+        vm.prank(swapper);
+        dcaOutManager.sellRbtc(user, 0, fakeScheduleId);
     }
 }
