@@ -308,4 +308,25 @@ contract ScheduleTest is DcaOutTestBase {
         uint256 newBalance = dcaOutManager.getScheduleRbtcBalance(user, 0);
         assertEq(newBalance, 0, "Balance should be zero after withdrawing all");
     }
+
+    function testCannotCreateScheduleWithZeroDeposit() public {
+        vm.startPrank(user);
+        
+        vm.expectRevert(abi.encodeWithSelector(IDcaOutManager.DcaOutManager__DepositAmountCantBeZero.selector));
+        dcaOutManager.createDcaOutSchedule{value: 0}(SALE_AMOUNT, SALE_PERIOD);
+        
+        vm.stopPrank();
+    }
+
+    function testCannotDepositRbtcWithZeroAmount() public {
+        // Create a schedule first
+        bytes32 scheduleId = createDcaOutSchedule(user, SALE_AMOUNT, SALE_PERIOD, 1 ether);
+        
+        vm.startPrank(user);
+        
+        vm.expectRevert(abi.encodeWithSelector(IDcaOutManager.DcaOutManager__DepositAmountCantBeZero.selector));
+        dcaOutManager.depositRbtc{value: 0}(0, scheduleId);
+        
+        vm.stopPrank();
+    }
 }
