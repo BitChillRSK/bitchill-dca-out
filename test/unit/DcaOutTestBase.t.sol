@@ -116,7 +116,7 @@ contract DcaOutTestBase is Test {
         bool isFork = block.chainid == RSK_MAINNET_CHAIN_ID || block.chainid == RSK_TESTNET_CHAIN_ID;
         
         owner = (isLocal || isFork) ? address(this) : config.owner;
-        swapper = (isLocal || isFork) ? address(this) : config.swapper;
+        swapper = config.swapper;
         feeCollector = config.feeCollector;
         
         // Create test users (these are not in the config as they're test-specific)
@@ -160,7 +160,8 @@ contract DcaOutTestBase is Test {
             MIN_SALE_PERIOD_TESTNET,
             MAX_SCHEDULES_PER_USER,
             MIN_SALE_AMOUNT_TESTNET,
-            MOC_COMMISSION
+            MOC_COMMISSION,
+            swapper
         );
 
         // Roles and ownership are handled entirely by the deployment script

@@ -34,7 +34,8 @@ contract EdgeCaseTest is DcaOutTestBase {
             1 days, // minSalePeriod
             10, // maxSchedulesPerUser
             0.01 ether, // minSaleAmount
-            100 // mocCommission
+            100, // mocCommission
+            swapper
         );
     }
 

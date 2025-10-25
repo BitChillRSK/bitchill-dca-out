@@ -16,7 +16,6 @@ contract DeployBase is Script {
     struct DeploymentConfig {
         address owner;
         address feeCollector;
-        address admin;
         Environment environment;
     }
 
@@ -26,11 +25,11 @@ contract DeployBase is Script {
     Environment environment;
 
     constructor() {
-        // Owner addresses (unified admin/owner role)
+        // Owner addresses (owner has DEFAULT_ADMIN_ROLE for role management)
         ownerAddresses[Environment.LOCAL] = makeAddr(OWNER_STRING);
         ownerAddresses[Environment.FORK] = makeAddr(OWNER_STRING);
-        ownerAddresses[Environment.TESTNET] = ADMIN_TESTNET; // Same as admin in production
-        ownerAddresses[Environment.MAINNET] = ADMIN_MAINNET; // Same as admin in production
+        ownerAddresses[Environment.TESTNET] = OWNER_TESTNET;
+        ownerAddresses[Environment.MAINNET] = OWNER_MAINNET;
 
         // Swapper addresses
         swapperAddresses[Environment.LOCAL] = makeAddr(SWAPPER_STRING);

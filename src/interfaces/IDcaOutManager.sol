@@ -137,7 +137,7 @@ interface IDcaOutManager {
         uint256 totalRbtcToSpend
     ) external;
 
-    // Admin functions
+    // Owner functions
     function setMinSalePeriod(uint256 minPeriod) external;
     function setMaxSchedulesPerUser(uint256 maxSchedules) external;
 

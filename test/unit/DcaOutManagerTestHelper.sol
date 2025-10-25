@@ -18,7 +18,8 @@ contract DcaOutManagerTestHelper is DcaOutManager {
         uint256 minSalePeriod,
         uint256 maxSchedulesPerUser,
         uint256 minSaleAmount,
-        uint256 mocCommission
+        uint256 mocCommission,
+        address swapper
     ) DcaOutManager(
             docTokenAddress,
             mocProxyAddress,
@@ -27,7 +28,8 @@ contract DcaOutManagerTestHelper is DcaOutManager {
             minSalePeriod,
             maxSchedulesPerUser,
             minSaleAmount,
-            mocCommission
+            mocCommission,
+            swapper
         ) {}
 
     // Expose internal functions for testing

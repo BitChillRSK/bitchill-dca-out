@@ -7,11 +7,11 @@ import {IDcaOutManager} from "../../src/interfaces/IDcaOutManager.sol";
 import "../Constants.sol";
 
 /**
- * @title AdminTest
+ * @title OnlyOwnerTest
  * @author BitChill team: Antonio Rodríguez-Ynyesto
- * @notice Test suite for DCA Out Manager admin functions
+ * @notice Test suite for DCA Out Manager owner functions
  */
-contract AdminTest is DcaOutTestBase {
+contract OnlyOwnerTest is DcaOutTestBase {
 
     function setUp() public override {
         super.setUp();
@@ -49,7 +49,7 @@ contract AdminTest is DcaOutTestBase {
     }
 
     /*//////////////////////////////////////////////////////////////
-                            ADMIN SETTINGS TESTS
+                            OWNER SETTINGS TESTS
     //////////////////////////////////////////////////////////////*/
 
     function testCannotSetMinSalePeriodIfNotOwner() public {

@@ -77,7 +77,7 @@ contract HelperConfig is Script {
             mocProxyAddress: MOC_PROXY_MAINNET,
             mocOracleAddress: MOC_ORACLE_MAINNET,
             feeCollector: FEE_COLLECTOR_MAINNET,
-            owner: ADMIN_MAINNET, // Same as admin in production
+            owner: OWNER_MAINNET,
             swapper: SWAPPER_MAINNET
         });
     }
@@ -92,7 +92,7 @@ contract HelperConfig is Script {
             mocProxyAddress: MOC_PROXY_TESTNET,
             mocOracleAddress: MOC_ORACLE_TESTNET,
             feeCollector: FEE_COLLECTOR_TESTNET,
-            owner: ADMIN_TESTNET, // Same as admin in production
+            owner: OWNER_TESTNET,
             swapper: SWAPPER_TESTNET
         });
     }

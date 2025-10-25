@@ -74,7 +74,8 @@ contract DeployDcaOut is DeployBase {
             minSalePeriod,
             MAX_SCHEDULES_PER_USER,
             minSaleAmount,
-            MOC_COMMISSION
+            MOC_COMMISSION,
+            config.swapper
         );
 
         console2.log("DcaOutManager deployed at:", address(dcaOutManager));
@@ -88,26 +89,27 @@ contract DeployDcaOut is DeployBase {
             address caller = msg.sender;
             dcaOutManager.transferOwnership(caller);
             console2.log("Ownership transferred to caller:", caller);
-            // Grant the caller the DEFAULT_ADMIN_ROLE
+            // Grant DEFAULT_ADMIN_ROLE to caller (owner) for role management
             dcaOutManager.grantRole(dcaOutManager.DEFAULT_ADMIN_ROLE(), caller);
-            console2.log("DEFAULT_ADMIN_ROLE granted to caller");
-            // For local/fork testing, grant the caller the SWAPPER_ROLE
-            dcaOutManager.grantRole(dcaOutManager.SWAPPER_ROLE(), caller);
-            console2.log("SWAPPER_ROLE granted to caller");
+            console2.log("DEFAULT_ADMIN_ROLE granted to owner for role management");
+            
+            // Revoke DEFAULT_ADMIN_ROLE from deployer for maximum security
+            dcaOutManager.revokeRole(dcaOutManager.DEFAULT_ADMIN_ROLE(), msg.sender);
+            console2.log("DEFAULT_ADMIN_ROLE revoked from deployer for security");
         } else {
             // For live networks (testnet/mainnet), transfer ownership to config owner
             console2.log("Live network deployment - transferring ownership to owner:", config.owner);
             dcaOutManager.transferOwnership(config.owner);
             
-            // Grant owner the DEFAULT_ADMIN_ROLE
+            // Grant DEFAULT_ADMIN_ROLE to owner for role management
             dcaOutManager.grantRole(dcaOutManager.DEFAULT_ADMIN_ROLE(), config.owner);
-            console2.log("DEFAULT_ADMIN_ROLE granted to owner");
+            console2.log("DEFAULT_ADMIN_ROLE granted to owner for role management");
+            
+            // Revoke DEFAULT_ADMIN_ROLE from deployer for maximum security
+            dcaOutManager.revokeRole(dcaOutManager.DEFAULT_ADMIN_ROLE(), msg.sender);
+            console2.log("DEFAULT_ADMIN_ROLE revoked from deployer for security");
             
             console2.log("Ownership transferred successfully");
-            
-            // Grant swapper role to swapper
-            dcaOutManager.grantRole(dcaOutManager.SWAPPER_ROLE(), config.swapper);
-            console2.log("SWAPPER_ROLE granted to swapper");
         }
 
         vm.stopBroadcast();

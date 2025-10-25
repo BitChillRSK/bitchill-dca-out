@@ -84,7 +84,8 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         uint256 minSalePeriod,
         uint256 maxSchedulesPerUser,
         uint256 minSaleAmount,
-        uint256 mocCommission
+        uint256 mocCommission,
+        address swapper
     ) FeeHandler(feeCollector, feeSettings) {
         i_docToken = IERC20(docTokenAddress);
         i_mocProxy = IMocProxy(mocProxyAddress);
@@ -92,9 +93,8 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         s_maxSchedulesPerUser = maxSchedulesPerUser;
         s_minSaleAmount = minSaleAmount;
         s_mocCommission = mocCommission;
-
-        // Grant DEFAULT_ADMIN_ROLE to deployer
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _grantRole(SWAPPER_ROLE, swapper);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -406,7 +406,7 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
     }
 
     /*//////////////////////////////////////////////////////////////
-                           ADMIN FUNCTIONS
+                           OWNER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     /**
