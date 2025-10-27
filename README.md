@@ -121,7 +121,11 @@ forge script script/DeployDcaOut.s.sol \
   --verifier blockscout \
   --verifier-url $BLOCKSCOUT_API_URL \
   --legacy
+
+# Reattempt verificatin if failed
+forge verify-contract --verifier blockscout --verifier-url $BLOCKSCOUT_API_URL <ADDRESS> src/DcaOutManager.sol:DcaOutManager --chain <CHAIN> 
 ```
+ 
 
 ## 📖 Usage
 
