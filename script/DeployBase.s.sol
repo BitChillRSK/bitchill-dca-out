@@ -19,46 +19,12 @@ contract DeployBase is Script {
         Environment environment;
     }
 
-    mapping(Environment => address) internal ownerAddresses;
-    mapping(Environment => address) internal swapperAddresses;
-    mapping(Environment => address) internal feeCollectorAddresses;
     Environment environment;
 
     constructor() {
-        // Owner addresses (owner has DEFAULT_ADMIN_ROLE for role management)
-        ownerAddresses[Environment.LOCAL] = makeAddr(OWNER_STRING);
-        ownerAddresses[Environment.FORK] = makeAddr(OWNER_STRING);
-        ownerAddresses[Environment.TESTNET] = OWNER_TESTNET;
-        ownerAddresses[Environment.MAINNET] = OWNER_MAINNET;
-
-        // Swapper addresses
-        swapperAddresses[Environment.LOCAL] = makeAddr(SWAPPER_STRING);
-        swapperAddresses[Environment.FORK] = makeAddr(SWAPPER_STRING);
-        swapperAddresses[Environment.TESTNET] = SWAPPER_TESTNET;
-        swapperAddresses[Environment.MAINNET] = SWAPPER_MAINNET;
-
-        // Fee collector addresses
-        feeCollectorAddresses[Environment.LOCAL] = makeAddr(FEE_COLLECTOR_STRING);
-        feeCollectorAddresses[Environment.FORK] = makeAddr(FEE_COLLECTOR_STRING);
-        feeCollectorAddresses[Environment.TESTNET] = FEE_COLLECTOR_TESTNET;
-        feeCollectorAddresses[Environment.MAINNET] = FEE_COLLECTOR_MAINNET;
-
         environment = getEnvironment();
-
         console.log("Environment:", uint256(environment)); // 0=LOCAL, 1=FORK, 2=TESTNET, 3=MAINNET
         console.log("Chain ID:", block.chainid);
-    }
-
-    function getOwner(Environment deploymentEnvironment) internal view returns (address) {
-        return ownerAddresses[deploymentEnvironment];
-    }
-
-    function getSwapper(Environment deploymentEnvironment) internal view returns (address) {
-        return swapperAddresses[deploymentEnvironment];
-    }
-
-    function getFeeCollector(Environment deploymentEnvironment) internal view returns (address) {
-        return feeCollectorAddresses[deploymentEnvironment];
     }
 
     function getEnvironment() internal view returns (Environment) {

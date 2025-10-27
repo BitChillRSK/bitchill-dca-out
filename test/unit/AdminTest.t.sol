@@ -26,7 +26,7 @@ contract OnlyOwnerTest is DcaOutTestBase {
         
         vm.expectEmit(true, true, true, true);
         emit DcaOutManager__SwapperSet(newSwapper);
-        vm.prank(address(this));
+        vm.prank(owner);
         dcaOutManager.grantSwapperRole(newSwapper);
         
         // Verify the role was granted
@@ -37,11 +37,11 @@ contract OnlyOwnerTest is DcaOutTestBase {
         address newSwapper = makeAddr("newSwapper");
         
         // First grant the role
-        vm.prank(address(this));
+        vm.prank(owner);
         dcaOutManager.grantSwapperRole(newSwapper);
         
         // Then revoke it
-        vm.prank(address(this));
+        vm.prank(owner);
         dcaOutManager.revokeSwapperRole(newSwapper);
         
         // Verify the role was revoked
@@ -51,6 +51,17 @@ contract OnlyOwnerTest is DcaOutTestBase {
     /*//////////////////////////////////////////////////////////////
                             OWNER SETTINGS TESTS
     //////////////////////////////////////////////////////////////*/
+
+    function testSetMinSalePeriod() public {
+        vm.startPrank(owner);
+        
+        vm.expectEmit(true, true, true, true);
+        emit DcaOutManager__MinSalePeriodSet(2 days);
+        dcaOutManager.setMinSalePeriod(2 days);
+        
+        vm.stopPrank();
+        assertEq(dcaOutManager.getMinSalePeriod(), 2 days, "Min sale period should be updated");
+    }
 
     function testCannotSetMinSalePeriodIfNotOwner() public {
         vm.startPrank(user);
@@ -78,7 +89,7 @@ contract OnlyOwnerTest is DcaOutTestBase {
         vm.stopPrank();
 
         // Test that owner can call this function
-        vm.startPrank(address(this)); // Test contract is the owner for local testing
+        vm.startPrank(owner);
         dcaOutManager.setMaxSchedulesPerUser(5);
         assertEq(dcaOutManager.getMaxSchedulesPerUser(), 5, "Max schedules per user should be updated");
         vm.stopPrank();

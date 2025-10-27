@@ -134,15 +134,11 @@ contract HelperConfig is Script {
             docTokenAddress: mockDocToken,
             mocProxyAddress: mockMocProxy,
             mocOracleAddress: mockMocOracle,
-            feeCollector: msg.sender, // Use deployer as fee collector in local
-            owner: msg.sender, // Use deployer as owner in local
-            swapper: msg.sender // Use deployer as swapper in local
+            feeCollector: makeAddr(FEE_COLLECTOR_STRING), 
+            owner: makeAddr(OWNER_STRING), 
+            swapper: makeAddr(SWAPPER_STRING)
         });
     }
-
-    /*//////////////////////////////////////////////////////////////
-                                GETTERS
-    //////////////////////////////////////////////////////////////*/
 
     function getActiveNetworkConfig() public view returns (NetworkConfig memory) {
         return activeNetworkConfig;

@@ -111,11 +111,7 @@ contract DcaOutTestBase is Test {
         HelperConfig.NetworkConfig memory config = helperConfig.getActiveNetworkConfig();
 
         // Use addresses from deployment config as single source of truth
-        // For local/fork testing, test contract acts as owner and swapper
-        bool isLocal = block.chainid == ANVIL_CHAIN_ID;
-        bool isFork = block.chainid == RSK_MAINNET_CHAIN_ID || block.chainid == RSK_TESTNET_CHAIN_ID;
-        
-        owner = (isLocal || isFork) ? address(this) : config.owner;
+        owner = config.owner;
         swapper = config.swapper;
         feeCollector = config.feeCollector;
         

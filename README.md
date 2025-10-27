@@ -104,7 +104,7 @@ forge script script/DeployDcaOut.s.sol:DeployDcaOut --rpc-url http://localhost:8
 
 # Deploy to Rootstock Testnet
 forge script script/DeployDcaOut.s.sol \
-  --rpc-url $RSK_TESTNET_RPC_URL \
+  --rpc-url $TESTNET_RPC_URL \
   --private-key $PRIVATE_KEY \
   --broadcast \
   --verify \
@@ -114,7 +114,7 @@ forge script script/DeployDcaOut.s.sol \
 
 # Deploy to Rootstock Mainnet
 forge script script/DeployDcaOut.s.sol \
-  --rpc-url $RSK_MAINNET_RPC_URL \
+  --rpc-url $MAINNET_RPC_URL \
   --private-key $PRIVATE_KEY \
   --broadcast \
   --verify \

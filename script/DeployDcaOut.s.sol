@@ -80,37 +80,19 @@ contract DeployDcaOut is DeployBase {
 
         console2.log("DcaOutManager deployed at:", address(dcaOutManager));
 
-        // Handle ownership and roles based on environment
-        Environment env = getEnvironment();
+        // Transfer ownership to config owner
+        console2.log("Live network deployment - transferring ownership to owner:", config.owner);
+        dcaOutManager.transferOwnership(config.owner);
         
-        if (env == Environment.LOCAL || env == Environment.FORK) {
-            console2.log("Local/Fork deployment - transferring ownership to caller");
-            // For local/fork testing, transfer ownership from broadcaster to the caller (test contract)
-            address caller = msg.sender;
-            dcaOutManager.transferOwnership(caller);
-            console2.log("Ownership transferred to caller:", caller);
-            // Grant DEFAULT_ADMIN_ROLE to caller (owner) for role management
-            dcaOutManager.grantRole(dcaOutManager.DEFAULT_ADMIN_ROLE(), caller);
-            console2.log("DEFAULT_ADMIN_ROLE granted to owner for role management");
-            
-            // Revoke DEFAULT_ADMIN_ROLE from deployer for maximum security
-            dcaOutManager.revokeRole(dcaOutManager.DEFAULT_ADMIN_ROLE(), msg.sender);
-            console2.log("DEFAULT_ADMIN_ROLE revoked from deployer for security");
-        } else {
-            // For live networks (testnet/mainnet), transfer ownership to config owner
-            console2.log("Live network deployment - transferring ownership to owner:", config.owner);
-            dcaOutManager.transferOwnership(config.owner);
-            
-            // Grant DEFAULT_ADMIN_ROLE to owner for role management
-            dcaOutManager.grantRole(dcaOutManager.DEFAULT_ADMIN_ROLE(), config.owner);
-            console2.log("DEFAULT_ADMIN_ROLE granted to owner for role management");
-            
-            // Revoke DEFAULT_ADMIN_ROLE from deployer for maximum security
-            dcaOutManager.revokeRole(dcaOutManager.DEFAULT_ADMIN_ROLE(), msg.sender);
-            console2.log("DEFAULT_ADMIN_ROLE revoked from deployer for security");
-            
-            console2.log("Ownership transferred successfully");
-        }
+        // Grant DEFAULT_ADMIN_ROLE to owner for role management
+        dcaOutManager.grantRole(dcaOutManager.DEFAULT_ADMIN_ROLE(), config.owner);
+        console2.log("DEFAULT_ADMIN_ROLE granted to owner for role management");
+        
+        // Revoke DEFAULT_ADMIN_ROLE from deployer for maximum security
+        dcaOutManager.revokeRole(dcaOutManager.DEFAULT_ADMIN_ROLE(), msg.sender);
+        console2.log("DEFAULT_ADMIN_ROLE revoked from deployer for security");
+        
+        console2.log("Ownership transferred successfully");
 
         vm.stopBroadcast();
 
