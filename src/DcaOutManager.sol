@@ -295,19 +295,13 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
 
     /**
      * @notice Withdraw DOC balance
-     * @param amount Amount of DOC to withdraw
      */
-    function withdrawDoc(uint256 amount) external override nonReentrant {
-        if (amount == 0) revert DcaOutManager__WithdrawalAmountCantBeThanZero();
-        if (s_userDocBalances[msg.sender] < amount) revert DcaOutManager__DocBalanceInsufficient(amount, s_userDocBalances[msg.sender]);
-
-        // Update balance
-        s_userDocBalances[msg.sender] -= amount;
-
-        // Transfer DOC
-        i_docToken.safeTransfer(msg.sender, amount);
-
-        emit DcaOutManager__DocWithdrawn(msg.sender, amount);
+    function withdrawDoc() external override nonReentrant {
+        uint256 balance = s_userDocBalances[msg.sender];
+        if (balance == 0) revert DcaOutManager__NoDocToWithdraw();
+        s_userDocBalances[msg.sender] = 0;
+        i_docToken.safeTransfer(msg.sender, balance);
+        emit DcaOutManager__DocWithdrawn(msg.sender, balance);
     }
 
     /*//////////////////////////////////////////////////////////////

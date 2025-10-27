@@ -397,26 +397,25 @@ contract DcaOutTestBase is Test {
     /**
      * @notice Withdraw DOC balance
      * @param userAddress The user
-     * @param amount Amount to withdraw
      */
-    function withdrawDoc(address userAddress, uint256 amount) internal {
+    function withdrawDoc(address userAddress) internal {
         uint256 userDocBalanceBefore = dcaOutManager.getUserDocBalance(userAddress);
         uint256 userDocTokenBalanceBefore = docToken.balanceOf(userAddress);
         
         // Check event emission
-        vm.expectEmit(false, false, false, true);
-        emit DcaOutManager__DocWithdrawn(userAddress, amount);
+        vm.expectEmit(true, true, true, true);
+        emit DcaOutManager__DocWithdrawn(userAddress, userDocBalanceBefore);
         
         vm.startPrank(userAddress);
-        dcaOutManager.withdrawDoc(amount);
+        dcaOutManager.withdrawDoc();
         vm.stopPrank();
         
         // Verify withdrawal
         uint256 userDocBalanceAfter = dcaOutManager.getUserDocBalance(userAddress);
         uint256 userDocTokenBalanceAfter = docToken.balanceOf(userAddress);
         
-        assertEq(userDocBalanceAfter, userDocBalanceBefore - amount, "User DOC balance should decrease by withdrawal amount");
-        assertEq(userDocTokenBalanceAfter, userDocTokenBalanceBefore + amount, "User should receive DOC tokens");
+        assertEq(userDocBalanceAfter, 0, "User DOC balance should be zero after withdrawing");
+        assertEq(userDocTokenBalanceAfter, userDocTokenBalanceBefore + userDocBalanceBefore, "User should receive DOC tokens");
     }
 
     /**

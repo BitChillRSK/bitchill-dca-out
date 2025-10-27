@@ -34,57 +34,20 @@ contract WithdrawalTest is DcaOutTestBase {
 
         uint256 docBalance = dcaOutManager.getUserDocBalance(user);
         assertTrue(docBalance > 0, "User should have DOC balance");
-
-        // Withdraw DOC
-        uint256 withdrawAmount = docBalance / 2;
         
         vm.startPrank(user);
-        dcaOutManager.withdrawDoc(withdrawAmount);
+        dcaOutManager.withdrawDoc();
         vm.stopPrank();
 
         uint256 newBalance = dcaOutManager.getUserDocBalance(user);
-        assertEq(newBalance, docBalance - withdrawAmount, "DOC balance should decrease by withdraw amount");
-    }
-
-    function testCannotWithdrawDocIfInsufficientBalance() public {
-        vm.startPrank(user);
-        
-        bytes memory encodedRevert = abi.encodeWithSelector(IDcaOutManager.DcaOutManager__DocBalanceInsufficient.selector, 1 ether, 0);
-        vm.expectRevert(encodedRevert);
-        dcaOutManager.withdrawDoc(1 ether); // Try to withdraw more than available
-        
-        vm.stopPrank();
-    }
-
-    function testWithdrawDocWithExactBalance() public {
-        vm.startPrank(user);
-        dcaOutManager.createDcaOutSchedule{value: 1 ether}(SALE_AMOUNT, SALE_PERIOD);
-        vm.stopPrank();
-
-        // Execute a sale to generate DOC balance
-        vm.startPrank(swapper);
-        dcaOutManager.sellRbtc(user, 0, dcaOutManager.getScheduleId(user, 0));
-        vm.stopPrank();
-
-        uint256 docBalance = dcaOutManager.getMyDocBalance();
-        if (docBalance > 0) {
-            vm.startPrank(user);
-            dcaOutManager.withdrawDoc(docBalance); // Withdraw exact balance
-            vm.stopPrank();
-
-            uint256 newBalance = dcaOutManager.getMyDocBalance();
-            assertEq(newBalance, 0, "Balance should be zero after withdrawing all");
-        } else {
-            // If no DOC balance was generated, skip the test
-            assertTrue(true, "No DOC balance generated, test skipped");
-        }
+        assertEq(newBalance, 0, "DOC balance should be zero after withdrawing");
     }
 
     function testCannotWithdrawDocWithZeroAmount() public {
         vm.startPrank(user);
         
-        vm.expectRevert(abi.encodeWithSelector(IDcaOutManager.DcaOutManager__WithdrawalAmountCantBeThanZero.selector));
-        dcaOutManager.withdrawDoc(0);
+        vm.expectRevert(abi.encodeWithSelector(IDcaOutManager.DcaOutManager__NoDocToWithdraw.selector));
+        dcaOutManager.withdrawDoc();
         
         vm.stopPrank();
     }

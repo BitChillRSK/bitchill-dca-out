@@ -93,14 +93,13 @@ interface IDcaOutManager {
     //////////////////////////////////////////////////////////////*/
 
     error DcaOutManager__DepositAmountCantBeZero();
-    error DcaOutManager__WithdrawalAmountCantBeThanZero();
+    error DcaOutManager__NoDocToWithdraw();
     error DcaOutManager__SaleAmountBelowMinimum(uint256 inputAmount, uint256 minimumAmount);
     error DcaOutManager__SalePeriodBelowMinimum(uint256 inputPeriod, uint256 minimumPeriod);
     error DcaOutManager__MaxSchedulesReached();
     error DcaOutManager__InexistentScheduleIndex(address user, uint256 scheduleIndex, uint256 scheduleCount);
     error DcaOutManager__ScheduleIdAndIndexMismatch(bytes32 providedId, bytes32 expectedId);
     error DcaOutManager__SalePeriodNotElapsed(uint256 lastSaleTimestamp, uint256 nextSaleTimestamp, uint256 currentTime);
-    error DcaOutManager__DocBalanceInsufficient(uint256 requestedAmount, uint256 availableAmount);
     error DcaOutManager__DocMintFailed(uint256 rbtcAmount);
     error DcaOutManager__RbtcWithdrawalFailed(address user, uint256 amount);
     error DcaOutManager__SaleAmountTooHighForPeriodicSales(uint256 saleAmount, uint256 rbtcBalance, uint256 maxSaleAmount);
@@ -125,7 +124,7 @@ interface IDcaOutManager {
 
     // Deposit/Withdrawal
     function depositRbtc(uint256 scheduleIndex, bytes32 scheduleId) external payable;
-    function withdrawDoc(uint256 amount) external;
+    function withdrawDoc() external;
     function withdrawRbtc(uint256 scheduleIndex, bytes32 scheduleId, uint256 amount) external;
 
     // Execution (called by swapper)

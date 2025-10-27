@@ -146,7 +146,7 @@ forge script script/DeployDcaOut.s.sol \
 4. **Withdraw DOC**
    ```solidity
    uint256 balance = dcaOutManager.getUserDocBalance(msg.sender);
-   dcaOutManager.withdrawDoc(balance);
+   dcaOutManager.withdrawDoc();
    ```
 
 ### For Swappers (Bots)
