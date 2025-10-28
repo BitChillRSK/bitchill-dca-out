@@ -6,7 +6,7 @@ pragma solidity 0.8.19;
 import "../script/Constants.sol";
 
 // Additional test-specific constants
-uint256 constant INITIAL_DEPOSIT = 1 ether; // 1 rBTC
+uint256 constant DEPOSIT_AMOUNT = 1 ether; // 1 rBTC
 uint256 constant SALE_AMOUNT = 0.1 ether; // 0.1 rBTC
 uint256 constant SALE_PERIOD = 1 days;
 uint256 constant STARTING_RBTC_BALANCE = 10 ether;

@@ -59,13 +59,13 @@ contract ScheduleTest is DcaOutTestBase {
 
         // Create max number of schedules (use less rBTC to avoid running out of funds)
         for (uint256 i = 0; i < MAX_SCHEDULES_PER_USER; i++) {
-            createDcaOutSchedule(user, SALE_AMOUNT / 2, SALE_PERIOD, INITIAL_DEPOSIT / 2);
+            createDcaOutSchedule(user, SALE_AMOUNT / 2, SALE_PERIOD, DEPOSIT_AMOUNT / 2);
         }
 
         // Try to create one more
         vm.expectRevert(IDcaOutManager.DcaOutManager__MaxSchedulesReached.selector);
         vm.prank(user);
-        dcaOutManager.createDcaOutSchedule{value: INITIAL_DEPOSIT / 2}(SALE_AMOUNT, SALE_PERIOD);
+        dcaOutManager.createDcaOutSchedule{value: DEPOSIT_AMOUNT / 2}(SALE_AMOUNT, SALE_PERIOD);
     }
 
     function testCannotCreateDcaOutScheduleWithSaleAmountTooHigh() public {
@@ -119,6 +119,48 @@ contract ScheduleTest is DcaOutTestBase {
 
         assertEq(balanceAfter - balanceBefore, 0.5 ether, "User should receive withdrawn rBTC");
         assertEq(dcaOutManager.getScheduleRbtcBalance(user, 0), 0.5 ether, "Schedule should have remaining balance");
+
+        vm.stopPrank();
+    }
+
+    function testWithdrawRbtcMoreThanBalance() public {
+        vm.startPrank(user);
+
+        dcaOutManager.createDcaOutSchedule{value: DEPOSIT_AMOUNT}(SALE_AMOUNT, SALE_PERIOD);
+        IDcaOutManager.DcaOutSchedule memory schedule = dcaOutManager.getSchedule(user, 0);
+
+        uint256 balanceBefore = user.balance;
+        
+        // Check event emission
+        vm.expectEmit(true, true, true, true);
+        emit DcaOutManager__RbtcWithdrawn(user, 0, schedule.scheduleId, DEPOSIT_AMOUNT);
+        
+        dcaOutManager.withdrawRbtc(0, schedule.scheduleId, DEPOSIT_AMOUNT + 1); // Withdraw more than the schedule balance
+        uint256 balanceAfter = user.balance;
+
+        assertEq(balanceAfter - balanceBefore, DEPOSIT_AMOUNT, "User should receive all rBTC back");
+        assertEq(dcaOutManager.getScheduleRbtcBalance(user, 0), 0 ether, "Schedule shouldn't have remaining balance");
+
+        vm.stopPrank();
+    }
+
+    function testWithdrawRbtcZeroAll() public {
+        vm.startPrank(user);
+
+        dcaOutManager.createDcaOutSchedule{value: DEPOSIT_AMOUNT}(SALE_AMOUNT, SALE_PERIOD);
+        IDcaOutManager.DcaOutSchedule memory schedule = dcaOutManager.getSchedule(user, 0);
+
+        uint256 balanceBefore = user.balance;
+        
+        // Check event emission
+        vm.expectEmit(true, true, true, true);
+        emit DcaOutManager__RbtcWithdrawn(user, 0, schedule.scheduleId, DEPOSIT_AMOUNT);
+        
+        dcaOutManager.withdrawRbtc(0, schedule.scheduleId, 0); // Withdraw all rBTC by setting amount to 0
+        uint256 balanceAfter = user.balance;
+
+        assertEq(balanceAfter - balanceBefore, DEPOSIT_AMOUNT, "User should receive all rBTC back");
+        assertEq(dcaOutManager.getScheduleRbtcBalance(user, 0), 0 ether, "Schedule shouldn't have remaining balance");
 
         vm.stopPrank();
     }

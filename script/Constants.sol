@@ -15,7 +15,7 @@ uint256 constant MIN_SALE_PERIOD_TESTNET = 1 seconds; // 1 second for testing (c
 
 // Fee configuration
 uint256 constant MIN_FEE_RATE = 100; // 1% fee rate
-uint256 constant MAX_FEE_RATE_TEST = 200; // 2% for testing - allows for better fee range testing
+uint256 constant MAX_FEE_RATE = 200; // 2% for testing - allows for better fee range testing
 uint256 constant MAX_FEE_RATE_PRODUCTION = 100; // 1% flat rate for production (same as MIN_FEE_RATE for flat fee)
 uint256 constant FEE_PURCHASE_LOWER_BOUND = 1000 ether; // 1000 DOC
 uint256 constant FEE_PURCHASE_UPPER_BOUND = 100_000 ether; // 100,000 DOC

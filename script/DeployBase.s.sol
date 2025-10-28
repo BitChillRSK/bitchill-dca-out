@@ -47,6 +47,6 @@ contract DeployBase is Script {
      */
     function getMaxFeeRate() public view returns (uint256 maxFeeRate) {
         bool isRealDeployment = vm.envOr("REAL_DEPLOYMENT", false);
-        return isRealDeployment ? MAX_FEE_RATE_PRODUCTION : MAX_FEE_RATE_TEST;
+        return isRealDeployment ? MAX_FEE_RATE_PRODUCTION : MAX_FEE_RATE;
     }
 }

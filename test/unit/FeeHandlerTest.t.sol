@@ -212,4 +212,74 @@ contract FeeHandlerTest is DcaOutTestBase {
         dcaOutManager.setFeeRateParams(100, 200, 2000, 1000); // lower > upper
         vm.stopPrank();
     }
+
+    /*//////////////////////////////////////////////////////////////
+                            FEE CALCULATION TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    function testCalculateFeeWithZeroDocAmount() public view {
+        // Test _calculateFee with zero DOC amount
+        uint256 fee = testHelper.calculateFee(0);
+        assertEq(fee, 0, "Fee should be zero for zero DOC amount");
+    }
+
+    function testCalculateFeeWithAmountBelowLowerBound() public view {
+        // Test _calculateFee with amount below lower bound
+        uint256 smallAmount = 1 ether; // Below the 1,000 DOC lower bound
+        uint256 fee = testHelper.calculateFee(smallAmount);
+        assertEq(fee, smallAmount * MAX_FEE_RATE / 10_000);
+    }
+
+    function testCalculateFeeWithAmountAtLowerBound() public view {
+        // Test _calculateFee with amount exactly at lower bound
+        uint256 lowerBound = 1000 ether; // Exactly at the lower bound
+        uint256 fee = testHelper.calculateFee(lowerBound);
+        assertEq(fee, lowerBound * MAX_FEE_RATE / 10_000);
+    }
+
+    function testCalculateFeeWithAmountAtUpperBound() public view {
+        // Test _calculateFee with amount above upper bound
+        uint256 upperBound = 100000 ether; // At the upper bound
+        uint256 fee = testHelper.calculateFee(upperBound);
+        assertEq(fee, upperBound * MIN_FEE_RATE / 10_000);
+    }
+
+    function testCalculateFeeWithAmountAboveUpperBound() public view {
+        // Test _calculateFee with amount above upper bound
+        uint256 aboveUpperBound = 100001 ether; // Above the upper bound
+        uint256 fee = testHelper.calculateFee(aboveUpperBound);
+        assertEq(fee, aboveUpperBound * MIN_FEE_RATE / 10_000);
+    }
+
+    function testFeeCalculationProgression() public view {
+        // Test that fee rate decreases as amounts get larger (progressive fee structure)
+        
+        uint256 baseAmount = 1000 ether;
+        uint256 baseFee = testHelper.calculateFee(baseAmount);
+        uint256 baseFeeRate = (baseFee * 1e18) / baseAmount; // Fee rate in basis points
+        
+        // Test with 2x amount
+        uint256 doubleAmount = baseAmount * 2;
+        uint256 doubleFee = testHelper.calculateFee(doubleAmount);
+        uint256 doubleFeeRate = (doubleFee * 1e18) / doubleAmount;
+        
+        // Fee rate should decrease as amount increases (progressive structure)
+        assertTrue(doubleFeeRate < baseFeeRate, "Fee rate should decrease with larger amounts");
+        
+        // Test with 10x amount
+        uint256 tenXAmount = baseAmount * 10;
+        uint256 tenXFee = testHelper.calculateFee(tenXAmount);
+        uint256 tenXFeeRate = (tenXFee * 1e18) / tenXAmount;
+        
+        // Fee rate should continue to decrease
+        assertTrue(tenXFeeRate < doubleFeeRate, "Fee rate should continue to decrease with larger amounts");
+        
+        // Test with 100x amount
+        uint256 hundredXAmount = baseAmount * 100;
+        uint256 hundredXFee = testHelper.calculateFee(hundredXAmount);
+        uint256 hundredXFeeRate = (hundredXFee * 1e18) / hundredXAmount;
+        
+        // Fee rate should be lowest for largest amounts
+        assertTrue(hundredXFeeRate < tenXFeeRate, "Fee rate should be lowest for largest amounts");
+    }
 }

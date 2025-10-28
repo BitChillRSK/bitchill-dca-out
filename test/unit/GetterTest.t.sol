@@ -81,7 +81,7 @@ contract GetterTest is DcaOutTestBase {
         dcaOutManager.createDcaOutSchedule{value: 1 ether}(SALE_AMOUNT, SALE_PERIOD);
         
         bytes32 scheduleId = dcaOutManager.getMyScheduleId(0);
-        assertTrue(scheduleId != bytes32(0), "Schedule ID should not be zero");
+        assertNotEq(scheduleId, bytes32(0), "Schedule ID should not be zero");
         vm.stopPrank();
     }
 
@@ -150,7 +150,7 @@ contract GetterTest is DcaOutTestBase {
         vm.stopPrank();
 
         bytes32 scheduleId = dcaOutManager.getScheduleId(user, 0);
-        assertTrue(scheduleId != bytes32(0), "Schedule ID should not be zero");
+        assertNotEq(scheduleId, bytes32(0), "Schedule ID should not be zero");
     }
 
     function testGetUserDocBalance() public {

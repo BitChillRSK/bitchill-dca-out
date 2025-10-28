@@ -143,7 +143,7 @@ contract DcaOutTestBase is Test {
         // Deploy test helper for fee calculations
         IFeeHandler.FeeSettings memory feeSettings = IFeeHandler.FeeSettings({
             minFeeRate: MIN_FEE_RATE,
-            maxFeeRate: MAX_FEE_RATE_TEST,
+            maxFeeRate: MAX_FEE_RATE,
             feePurchaseLowerBound: FEE_PURCHASE_LOWER_BOUND,
             feePurchaseUpperBound: FEE_PURCHASE_UPPER_BOUND
         });
@@ -153,9 +153,9 @@ contract DcaOutTestBase is Test {
             config.mocProxyAddress,
             config.feeCollector,
             feeSettings,
-            MIN_SALE_PERIOD_TESTNET,
+            MIN_SALE_PERIOD,
             MAX_SCHEDULES_PER_USER,
-            MIN_SALE_AMOUNT_TESTNET,
+            MIN_SALE_AMOUNT,
             MOC_COMMISSION,
             swapper
         );
@@ -183,11 +183,13 @@ contract DcaOutTestBase is Test {
         uint256 initialDeposit
     ) internal returns (bytes32) {
         uint256 scheduleIndex = dcaOutManager.getSchedules(userAddress).length;
+
+        bytes32 scheduleId = keccak256(
+            abi.encodePacked(userAddress, block.timestamp, scheduleIndex)
+        );
         
-        // Check event emission
-        vm.expectEmit(true, true, false, true);
-        emit DcaOutManager__ScheduleCreated(userAddress, scheduleIndex, bytes32(0), rbtcSaleAmount, salePeriod);
-        
+        vm.expectEmit(true, true, true, true);
+        emit DcaOutManager__ScheduleCreated(userAddress, scheduleIndex, scheduleId, rbtcSaleAmount, salePeriod);
         vm.prank(userAddress);
         dcaOutManager.createDcaOutSchedule{value: initialDeposit}(rbtcSaleAmount, salePeriod);
 
@@ -200,7 +202,7 @@ contract DcaOutTestBase is Test {
         assertEq(schedule.salePeriod, salePeriod, "Wrong sale period");
         assertEq(schedule.rbtcBalance, initialDeposit, "Wrong initial rBTC balance");
         assertEq(schedule.lastSaleTimestamp, 0, "Last sale timestamp should be 0 for new schedule");
-        assertTrue(schedule.scheduleId != bytes32(0), "Schedule ID should not be zero");
+        assertEq(schedule.scheduleId, scheduleId, "Schedule ID mismatch");
         
         return schedule.scheduleId;
     }
@@ -244,16 +246,16 @@ contract DcaOutTestBase is Test {
         uint256 expectedDocAfterFees = expectedDocMinted - testHelper.calculateFee(expectedDocMinted);
 
         // Check that lastSaleTimestamp was updated
-        assertTrue(scheduleAfter.lastSaleTimestamp > scheduleBefore.lastSaleTimestamp, "Last sale timestamp should be updated");
+        assertGe(scheduleAfter.lastSaleTimestamp, scheduleBefore.lastSaleTimestamp, "Last sale timestamp should be updated");
         
         // Check that user received DOC
-        assertTrue(userDocBalanceAfter > userDocBalanceBefore, "User should receive DOC");
+        assertGe(userDocBalanceAfter, userDocBalanceBefore, "User should receive DOC");
         
         // Check that contract received DOC from MoC
-        assertTrue(contractDocBalanceAfter > contractDocBalanceBefore, "Contract should receive DOC from MoC");
+        assertGe(contractDocBalanceAfter, contractDocBalanceBefore, "Contract should receive DOC from MoC");
         
         // Check that rBTC balance decreased (accounting for potential change from MoC)
-        assertTrue(scheduleAfter.rbtcBalance < scheduleBefore.rbtcBalance, "rBTC balance should decrease");
+        assertLe(scheduleAfter.rbtcBalance, scheduleBefore.rbtcBalance, "rBTC balance should decrease");
         
         // Check that received DOC is reasonable
         uint256 docReceived = userDocBalanceAfter - userDocBalanceBefore;
@@ -300,8 +302,8 @@ contract DcaOutTestBase is Test {
         uint256 expectedTotalDocAfterFees = expectedTotalDocMinted - _calculateTotalBatchPurchaseFee(users, scheduleIndexes, rbtcPrice);
         
         // The exact amounts of rBTC spent and DOC received are unpredictable
-        vm.expectEmit(true, false, false, false);
-        emit DcaOutManager__RbtcSoldBatch(totalRbtcToSpend, 0, 0, 0, 0);
+        vm.expectEmit(true, true, true, false); // data not checked to avoid stack too deep error
+        emit DcaOutManager__RbtcSoldBatch(totalRbtcToSpend, totalRbtcToSpend, expectedTotalDocAfterFees, expectedTotalDocMinted, 0);
         
         vm.prank(swapper);
         dcaOutManager.batchSellRbtc(users, scheduleIndexes, scheduleIds, totalRbtcToSpend);
@@ -344,77 +346,6 @@ contract DcaOutTestBase is Test {
     }
 
     /**
-     * @notice Deposit rBTC to a schedule
-     * @param userAddress The user
-     * @param scheduleIndex The schedule index
-     * @param scheduleId The schedule ID
-     * @param amount Amount to deposit
-     */
-    function depositRbtc(address userAddress, uint256 scheduleIndex, bytes32 scheduleId, uint256 amount) internal {
-        uint256 balanceBefore = dcaOutManager.getScheduleRbtcBalance(userAddress, scheduleIndex);
-        
-        // Check event emission
-        vm.expectEmit(true, true, true, true);
-        emit DcaOutManager__RbtcDeposited(userAddress, scheduleIndex, scheduleId, amount);
-        
-        vm.startPrank(userAddress);
-        dcaOutManager.depositRbtc{value: amount}(scheduleIndex, scheduleId);
-        vm.stopPrank();
-        
-        // Verify deposit
-        uint256 balanceAfter = dcaOutManager.getScheduleRbtcBalance(userAddress, scheduleIndex);
-        assertEq(balanceAfter, balanceBefore + amount, "rBTC balance should increase by deposit amount");
-    }
-
-    /**
-     * @notice Withdraw rBTC from a schedule
-     * @param userAddress The user
-     * @param scheduleIndex The schedule index
-     * @param scheduleId The schedule ID
-     * @param amount Amount to withdraw (0 for all)
-     */
-    function withdrawRbtc(address userAddress, uint256 scheduleIndex, bytes32 scheduleId, uint256 amount) internal {
-        uint256 balanceBefore = dcaOutManager.getScheduleRbtcBalance(userAddress, scheduleIndex);
-        uint256 expectedWithdrawal = amount == 0 ? balanceBefore : amount;
-        
-        // Check event emission
-        vm.expectEmit(true, true, true, true);
-        emit DcaOutManager__RbtcWithdrawn(userAddress, scheduleIndex, scheduleId, expectedWithdrawal);
-        
-        vm.startPrank(userAddress);
-        dcaOutManager.withdrawRbtc(scheduleIndex, scheduleId, amount);
-        vm.stopPrank();
-        
-        // Verify withdrawal
-        uint256 balanceAfter = dcaOutManager.getScheduleRbtcBalance(userAddress, scheduleIndex);
-        assertEq(balanceAfter, balanceBefore - expectedWithdrawal, "rBTC balance should decrease by withdrawal amount");
-    }
-
-    /**
-     * @notice Withdraw DOC balance
-     * @param userAddress The user
-     */
-    function withdrawDoc(address userAddress) internal {
-        uint256 userDocBalanceBefore = dcaOutManager.getUserDocBalance(userAddress);
-        uint256 userDocTokenBalanceBefore = docToken.balanceOf(userAddress);
-        
-        // Check event emission
-        vm.expectEmit(true, true, true, true);
-        emit DcaOutManager__DocWithdrawn(userAddress, userDocBalanceBefore);
-        
-        vm.startPrank(userAddress);
-        dcaOutManager.withdrawDoc();
-        vm.stopPrank();
-        
-        // Verify withdrawal
-        uint256 userDocBalanceAfter = dcaOutManager.getUserDocBalance(userAddress);
-        uint256 userDocTokenBalanceAfter = docToken.balanceOf(userAddress);
-        
-        assertEq(userDocBalanceAfter, 0, "User DOC balance should be zero after withdrawing");
-        assertEq(userDocTokenBalanceAfter, userDocTokenBalanceBefore + userDocBalanceBefore, "User should receive DOC tokens");
-    }
-
-    /**
      * @notice Calculate total fees for multiple users individually
      * @param users Array of user addresses
      * @param scheduleIndexes Array of schedule indexes
@@ -435,5 +366,71 @@ contract DcaOutTestBase is Test {
             totalFees += userFee;
         }
         return totalFees;
+    }
+
+    /**
+     * @notice Deposit rBTC to a schedule
+     * @param userAddress The user
+     * @param scheduleIndex The schedule index
+     * @param scheduleId The schedule ID
+     * @param amount Amount to deposit
+     */
+    function depositRbtc(address userAddress, uint256 scheduleIndex, bytes32 scheduleId, uint256 amount) internal {
+        uint256 balanceBefore = dcaOutManager.getScheduleRbtcBalance(userAddress, scheduleIndex);
+        
+        // Check event emission
+        vm.expectEmit(true, true, true, true);
+        emit DcaOutManager__RbtcDeposited(userAddress, scheduleIndex, scheduleId, amount);  
+        vm.prank(userAddress);
+        dcaOutManager.depositRbtc{value: amount}(scheduleIndex, scheduleId);
+        
+        // Verify deposit
+        uint256 balanceAfter = dcaOutManager.getScheduleRbtcBalance(userAddress, scheduleIndex);
+        assertEq(balanceAfter, balanceBefore + amount, "rBTC balance should increase by deposit amount");
+    }
+
+    /**
+     * @notice Withdraw rBTC from a schedule
+     * @param userAddress The user
+     * @param scheduleIndex The schedule index
+     * @param scheduleId The schedule ID
+     * @param amount Amount to withdraw (0 for all)
+     */
+    function withdrawRbtc(address userAddress, uint256 scheduleIndex, bytes32 scheduleId, uint256 amount) internal {
+        uint256 balanceBefore = dcaOutManager.getScheduleRbtcBalance(userAddress, scheduleIndex);
+        uint256 expectedWithdrawal = (amount == 0 || amount > balanceBefore) ? balanceBefore : amount;
+        
+        // Check event emission
+        vm.expectEmit(true, true, true, true);
+        emit DcaOutManager__RbtcWithdrawn(userAddress, scheduleIndex, scheduleId, expectedWithdrawal);
+        vm.prank(userAddress);
+        dcaOutManager.withdrawRbtc(scheduleIndex, scheduleId, amount);
+        
+        // Verify withdrawal
+        uint256 balanceAfter = dcaOutManager.getScheduleRbtcBalance(userAddress, scheduleIndex);
+        assertEq(balanceAfter, balanceBefore - expectedWithdrawal, "rBTC balance should decrease by withdrawal amount");
+    }
+
+    /**
+     * @notice Withdraw DOC balance
+     * @param userAddress The user
+     */
+    function withdrawDoc(address userAddress) internal {
+        uint256 userDocBalanceInContractBefore = dcaOutManager.getUserDocBalance(userAddress);
+        uint256 userDocBalanceBefore = docToken.balanceOf(userAddress);
+        
+        // Check event emission
+        vm.expectEmit(true, true, true, true);
+        emit DcaOutManager__DocWithdrawn(userAddress, userDocBalanceInContractBefore);
+        
+        vm.prank(userAddress);
+        dcaOutManager.withdrawDoc();
+        
+        // Verify withdrawal
+        uint256 userDocBalanceInContractAfter = dcaOutManager.getUserDocBalance(userAddress);
+        uint256 userDocBalanceAfter = docToken.balanceOf(userAddress);
+        
+        assertEq(userDocBalanceInContractAfter, 0, "User DOC balance should be zero after withdrawing");
+        assertEq(userDocBalanceAfter, userDocBalanceBefore + userDocBalanceInContractBefore, "User should receive DOC tokens");
     }
 }

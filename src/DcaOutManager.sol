@@ -122,9 +122,7 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         DcaOutSchedule[] storage schedules = s_userSchedules[msg.sender];
         uint256 scheduleIndex = schedules.length; // The new schedule's index
 
-        if (scheduleIndex == s_maxSchedulesPerUser) {
-            revert DcaOutManager__MaxSchedulesReached();
-        }
+        if (scheduleIndex == s_maxSchedulesPerUser) revert DcaOutManager__MaxSchedulesReached();
 
         // Create schedule ID
         bytes32 scheduleId = keccak256(

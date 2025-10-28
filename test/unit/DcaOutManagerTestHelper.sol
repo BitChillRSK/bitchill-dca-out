@@ -36,9 +36,4 @@ contract DcaOutManagerTestHelper is DcaOutManager {
     function calculateFee(uint256 docAmount) external view returns (uint256) {
         return _calculateFee(docAmount);
     }
-
-    function calculateFeeAndNetAmounts(uint256 docAmount) external view returns (uint256 fee, uint256 netAmount) {
-        fee = _calculateFee(docAmount);
-        netAmount = docAmount - fee;
-    }
 }
