@@ -322,22 +322,22 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         uint256 lastSaleTimestamp = schedule.lastSaleTimestamp;
         uint256 salePeriod = schedule.salePeriod;
         _validatePeriodElapsed(lastSaleTimestamp, salePeriod);
-        SaleAmounts memory saleAmounts;
-        saleAmounts.rbtcToSpend = schedule.rbtcSaleAmount;
+        SaleData memory saleData;
+        saleData.rbtcToSpend = schedule.rbtcSaleAmount;
 
-        (saleAmounts.docReceived, saleAmounts.rbtcSpent) = _mintDoc(saleAmounts.rbtcToSpend);
+        (saleData.docReceived, saleData.rbtcSpent) = _mintDoc(saleData.rbtcToSpend);
 
-        schedule.rbtcBalance -= saleAmounts.rbtcSpent; // Will revert if input was incorrect and the schedule's rBTC balance was insufficient
+        schedule.rbtcBalance -= saleData.rbtcSpent; // Will revert if input was incorrect and the schedule's rBTC balance was insufficient
         schedule.lastSaleTimestamp = lastSaleTimestamp == 0
             ? block.timestamp
             : lastSaleTimestamp + salePeriod;
 
         // Fees and credit
-        saleAmounts.feeAmount = _calculateFee(saleAmounts.docReceived);
-        s_userDocBalances[user] += saleAmounts.docReceived - saleAmounts.feeAmount;
-        _transferFee(i_docToken, saleAmounts.feeAmount);
+        saleData.feeAmount = _calculateFee(saleData.docReceived);
+        s_userDocBalances[user] += saleData.docReceived - saleData.feeAmount;
+        _transferFee(i_docToken, saleData.feeAmount);
 
-        emit DcaOutManager__RbtcSold(user, schedule.scheduleId, saleAmounts.rbtcToSpend, saleAmounts.rbtcSpent, saleAmounts.docReceived - saleAmounts.feeAmount, saleAmounts.docReceived);
+        emit DcaOutManager__RbtcSold(user, schedule.scheduleId, saleData.rbtcToSpend, saleData.rbtcSpent, saleData.docReceived - saleData.feeAmount, saleData.docReceived);
     }
 
     /**
@@ -345,6 +345,8 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
      * @dev Uses calldata, no dynamic buffers, two tight loops, unchecked increments.
      * @param users User addresses (calldata)
      * @param scheduleIndexes Schedule indexes (calldata)
+     * @param scheduleIds Schedule IDs (calldata)
+     * @param totalRbtcToSpend Total rBTC to spend
      */
     function batchSellRbtc(
         address[] calldata users,
@@ -357,41 +359,43 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         (uint256 totalDocReceived, uint256 totalRbtcSpent) = _mintDoc(totalRbtcToSpend);
 
         // Single write pass: distribute DOC, apply change, update schedule, collect fees
+        uint256 sumOfSaleAmounts;
         uint256 totalFee;
         for (uint256 i; i < len;) {
-            address user = users[i];
-            uint256 scheduleIndex = scheduleIndexes[i];
-            bytes32 scheduleId = scheduleIds[i];
-            _validateScheduleIndexAndId(user, scheduleIndex, scheduleId);
-            SaleAmounts memory saleAmounts;
+            SaleData memory saleData;
+
+            saleData.user = users[i];
+            saleData.scheduleIndex = scheduleIndexes[i];
+            saleData.scheduleId = scheduleIds[i];
+            _validateScheduleIndexAndId(saleData.user, saleData.scheduleIndex, saleData.scheduleId);
             
-            DcaOutSchedule storage schedule = s_userSchedules[user][scheduleIndex];
+            DcaOutSchedule storage schedule = s_userSchedules[saleData.user][saleData.scheduleIndex];
             uint256 lastSaleTimestamp = schedule.lastSaleTimestamp;
             uint256 salePeriod = schedule.salePeriod;
             _validatePeriodElapsed(lastSaleTimestamp, salePeriod);
             
-            saleAmounts.rbtcToSpend = schedule.rbtcSaleAmount;
+            saleData.rbtcToSpend = schedule.rbtcSaleAmount;
+            sumOfSaleAmounts += saleData.rbtcToSpend;
 
             // Proportional allocations
-            saleAmounts.docReceived = (totalDocReceived * saleAmounts.rbtcToSpend) / totalRbtcToSpend;
+            saleData.docReceived = (totalDocReceived * saleData.rbtcToSpend) / totalRbtcToSpend;
             // Potentially overestimate by 1 wei the rbtc spent by each user to avoid accounting errors
-            saleAmounts.rbtcSpent = Math.mulDiv(totalRbtcSpent, saleAmounts.rbtcToSpend, totalRbtcToSpend, Math.Rounding.Up);
-
-            // Single-write schedule update
-            schedule.rbtcBalance -= saleAmounts.rbtcSpent; // Will revert if input was incorrect and the schedule's rBTC balance was insufficient
+            saleData.rbtcSpent = Math.mulDiv(totalRbtcSpent, saleData.rbtcToSpend, totalRbtcToSpend, Math.Rounding.Up);
+            schedule.rbtcBalance -= saleData.rbtcSpent; // Will revert if input was incorrect and the schedule's rBTC balance was insufficient
             schedule.lastSaleTimestamp = lastSaleTimestamp == 0
                 ? block.timestamp
                 : lastSaleTimestamp + salePeriod;
 
-            // Fees and credit
-            saleAmounts.feeAmount = _calculateFee(saleAmounts.docReceived);
-            totalFee += saleAmounts.feeAmount;
-            s_userDocBalances[user] += saleAmounts.docReceived - saleAmounts.feeAmount;
+            saleData.feeAmount = _calculateFee(saleData.docReceived);
+            totalFee += saleData.feeAmount;
+            s_userDocBalances[saleData.user] += saleData.docReceived - saleData.feeAmount;
 
-            emit DcaOutManager__RbtcSold(user, scheduleId, saleAmounts.rbtcToSpend, saleAmounts.rbtcSpent, saleAmounts.docReceived - saleAmounts.feeAmount, saleAmounts.docReceived);
+            emit DcaOutManager__RbtcSold(saleData.user, saleData.scheduleId, saleData.rbtcToSpend, saleData.rbtcSpent, saleData.docReceived - saleData.feeAmount, saleData.docReceived);
 
             unchecked { ++i; }
         }
+
+        if (sumOfSaleAmounts != totalRbtcToSpend) revert DcaOutManager__TotalSaleAmountMismatch(sumOfSaleAmounts, totalRbtcToSpend);
 
         _transferFee(i_docToken, totalFee);
         emit DcaOutManager__RbtcSoldBatch(totalRbtcToSpend, totalRbtcSpent, totalDocReceived - totalFee, totalDocReceived, len);
@@ -461,8 +465,8 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
      */
     function _validateSaleAmount(uint256 saleAmount, uint256 rbtcBalance) private view {
         if (saleAmount < s_minSaleAmount) revert DcaOutManager__SaleAmountBelowMinimum(saleAmount, s_minSaleAmount);
-        // Sale amount must be at most half of the balance to allow at least two DCA sales
-        if (saleAmount > rbtcBalance / 2) revert DcaOutManager__SaleAmountTooHighForPeriodicSales(saleAmount, rbtcBalance, rbtcBalance / 2);
+        // Sale amount must be at most equal to balance to allow at least one sale
+        if (saleAmount > rbtcBalance) revert DcaOutManager__CannotSetSaleAmountMoreThanBalance(saleAmount, rbtcBalance, rbtcBalance);
     }
 
     /**

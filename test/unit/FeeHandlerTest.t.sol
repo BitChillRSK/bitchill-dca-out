@@ -14,6 +14,12 @@ import "../Constants.sol";
  */
 contract FeeHandlerTest is DcaOutTestBase {
 
+    event FeeHandler__MinFeeRateSet(uint256 minFeeRate);
+    event FeeHandler__MaxFeeRateSet(uint256 maxFeeRate);
+    event FeeHandler__PurchaseLowerBoundSet(uint256 feePurchaseLowerBound);
+    event FeeHandler__PurchaseUpperBoundSet(uint256 feePurchaseUpperBound);
+    event FeeHandler__FeeCollectorAddressSet(address feeCollector);
+
     function setUp() public override {
         super.setUp();
     }
@@ -41,14 +47,15 @@ contract FeeHandlerTest is DcaOutTestBase {
         uint256 newLowerBound = 2000e18;
         uint256 newUpperBound = 8000e18;
         
-        // Note: Event emission checks temporarily removed due to compilation issues
-        
-        // First transfer ownership to test contract from current owner
-        address currentOwner = dcaOutManager.owner();
-        vm.prank(currentOwner);
-        dcaOutManager.transferOwnership(address(this));
-        
-        vm.prank(address(this));
+        vm.prank(owner);
+        vm.expectEmit(true, true, true, true);
+        emit FeeHandler__MinFeeRateSet(newMinRate);
+        vm.expectEmit(true, true, true, true);
+        emit FeeHandler__MaxFeeRateSet(newMaxRate);
+        vm.expectEmit(true, true, true, true);
+        emit FeeHandler__PurchaseLowerBoundSet(newLowerBound);
+        vm.expectEmit(true, true, true, true);
+        emit FeeHandler__PurchaseUpperBoundSet(newUpperBound);
         dcaOutManager.setFeeRateParams(newMinRate, newMaxRate, newLowerBound, newUpperBound);
         
         assertEq(dcaOutManager.getMinFeeRate(), newMinRate, "Min fee rate should be updated");
@@ -60,14 +67,9 @@ contract FeeHandlerTest is DcaOutTestBase {
     function testSetMinFeeRate() public {
         uint256 newMinRate = 30;
         
-        // Note: Event emission check temporarily removed due to compilation issues
-        
-        // First transfer ownership to test contract from current owner
-        address currentOwner = dcaOutManager.owner();
-        vm.prank(currentOwner);
-        dcaOutManager.transferOwnership(address(this));
-        
-        vm.prank(address(this));
+        vm.prank(owner);
+        vm.expectEmit(true, true, true, true);
+        emit FeeHandler__MinFeeRateSet(newMinRate);
         dcaOutManager.setMinFeeRate(newMinRate);
         
         assertEq(dcaOutManager.getMinFeeRate(), newMinRate, "Min fee rate should be updated");
@@ -76,14 +78,9 @@ contract FeeHandlerTest is DcaOutTestBase {
     function testSetMaxFeeRate() public {
         uint256 newMaxRate = 80;
         
-        // Note: Event emission check temporarily removed due to compilation issues
-        
-        // First transfer ownership to test contract from current owner
-        address currentOwner = dcaOutManager.owner();
-        vm.prank(currentOwner);
-        dcaOutManager.transferOwnership(address(this));
-        
-        vm.prank(address(this));
+        vm.prank(owner);
+        vm.expectEmit(true, true, true, true);
+        emit FeeHandler__MaxFeeRateSet(newMaxRate);
         dcaOutManager.setMaxFeeRate(newMaxRate);
         
         assertEq(dcaOutManager.getMaxFeeRate(), newMaxRate, "Max fee rate should be updated");
@@ -92,14 +89,9 @@ contract FeeHandlerTest is DcaOutTestBase {
     function testSetPurchaseLowerBound() public {
         uint256 newLowerBound = 1500e18;
         
-        // Note: Event emission check temporarily removed due to compilation issues
-        
-        // First transfer ownership to test contract from current owner
-        address currentOwner = dcaOutManager.owner();
-        vm.prank(currentOwner);
-        dcaOutManager.transferOwnership(address(this));
-        
-        vm.prank(address(this));
+        vm.prank(owner);
+        vm.expectEmit(true, true, true, true);
+        emit FeeHandler__PurchaseLowerBoundSet(newLowerBound);
         dcaOutManager.setPurchaseLowerBound(newLowerBound);
         
         assertEq(dcaOutManager.getFeePurchaseLowerBound(), newLowerBound, "Lower bound should be updated");
@@ -108,14 +100,9 @@ contract FeeHandlerTest is DcaOutTestBase {
     function testSetPurchaseUpperBound() public {
         uint256 newUpperBound = 12000e18;
         
-        // Note: Event emission check temporarily removed due to compilation issues
-        
-        // First transfer ownership to test contract from current owner
-        address currentOwner = dcaOutManager.owner();
-        vm.prank(currentOwner);
-        dcaOutManager.transferOwnership(address(this));
-        
-        vm.prank(address(this));
+        vm.prank(owner);
+        vm.expectEmit(true, true, true, true);
+        emit FeeHandler__PurchaseUpperBoundSet(newUpperBound);
         dcaOutManager.setPurchaseUpperBound(newUpperBound);
         
         assertEq(dcaOutManager.getFeePurchaseUpperBound(), newUpperBound, "Upper bound should be updated");
@@ -124,14 +111,9 @@ contract FeeHandlerTest is DcaOutTestBase {
     function testSetFeeCollectorAddress() public {
         address newFeeCollector = makeAddr("newFeeCollector");
         
-        // Note: Event emission check temporarily removed due to compilation issues
-        
-        // First transfer ownership to test contract from current owner
-        address currentOwner = dcaOutManager.owner();
-        vm.prank(currentOwner);
-        dcaOutManager.transferOwnership(address(this));
-        
-        vm.prank(address(this));
+        vm.prank(owner);
+        vm.expectEmit(true, true, true, true);
+        emit FeeHandler__FeeCollectorAddressSet(newFeeCollector);
         dcaOutManager.setFeeCollectorAddress(newFeeCollector);
         
         assertEq(dcaOutManager.getFeeCollectorAddress(), newFeeCollector, "Fee collector should be updated");
@@ -142,57 +124,39 @@ contract FeeHandlerTest is DcaOutTestBase {
     //////////////////////////////////////////////////////////////*/
 
     function testCannotSetFeeRateParamsIfNotOwner() public {
-        vm.startPrank(user);
-        
+        vm.prank(user);
         vm.expectRevert("Ownable: caller is not the owner");
         dcaOutManager.setFeeRateParams(25, 75, 2000e18, 8000e18);
-        
-        vm.stopPrank();
     }
 
     function testCannotSetMinFeeRateIfNotOwner() public {
-        vm.startPrank(user);
-        
+        vm.prank(user);
         vm.expectRevert("Ownable: caller is not the owner");
         dcaOutManager.setMinFeeRate(30);
-        
-        vm.stopPrank();
     }
 
     function testCannotSetMaxFeeRateIfNotOwner() public {
-        vm.startPrank(user);
-        
+        vm.prank(user);
         vm.expectRevert("Ownable: caller is not the owner");
         dcaOutManager.setMaxFeeRate(80);
-        
-        vm.stopPrank();
     }
 
     function testCannotSetPurchaseLowerBoundIfNotOwner() public {
-        vm.startPrank(user);
-        
+        vm.prank(user);
         vm.expectRevert("Ownable: caller is not the owner");
         dcaOutManager.setPurchaseLowerBound(1500e18);
-        
-        vm.stopPrank();
     }
 
     function testCannotSetPurchaseUpperBoundIfNotOwner() public {
-        vm.startPrank(user);
-        
+        vm.prank(user);
         vm.expectRevert("Ownable: caller is not the owner");
         dcaOutManager.setPurchaseUpperBound(12000e18);
-        
-        vm.stopPrank();
     }
 
     function testCannotSetFeeCollectorIfNotOwner() public {
-        vm.startPrank(user);
-        
+        vm.prank(user);
         vm.expectRevert("Ownable: caller is not the owner");
         dcaOutManager.setFeeCollectorAddress(makeAddr("newCollector"));
-        
-        vm.stopPrank();
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -200,17 +164,15 @@ contract FeeHandlerTest is DcaOutTestBase {
     //////////////////////////////////////////////////////////////*/
 
     function testCannotSetFeeRateParamsWithMinHigherThanMax() public {
-        vm.startPrank(owner);
+        vm.prank(owner);
         vm.expectRevert(abi.encodeWithSelector(IFeeHandler.FeeHandler__MinFeeRateCannotBeHigherThanMax.selector));
         dcaOutManager.setFeeRateParams(200, 100, 1000, 2000); // min > max
-        vm.stopPrank();
     }
 
     function testCannotSetFeeRateParamsWithLowerBoundHigherThanUpperBound() public {
-        vm.startPrank(owner);
+        vm.prank(owner);
         vm.expectRevert(abi.encodeWithSelector(IFeeHandler.FeeHandler__FeeLowerBoundCAnnotBeHigherThanUpperBound.selector));
         dcaOutManager.setFeeRateParams(100, 200, 2000, 1000); // lower > upper
-        vm.stopPrank();
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -218,42 +180,35 @@ contract FeeHandlerTest is DcaOutTestBase {
     //////////////////////////////////////////////////////////////*/
 
     function testCalculateFeeWithZeroDocAmount() public view {
-        // Test _calculateFee with zero DOC amount
         uint256 fee = testHelper.calculateFee(0);
         assertEq(fee, 0, "Fee should be zero for zero DOC amount");
     }
 
     function testCalculateFeeWithAmountBelowLowerBound() public view {
-        // Test _calculateFee with amount below lower bound
         uint256 smallAmount = 1 ether; // Below the 1,000 DOC lower bound
         uint256 fee = testHelper.calculateFee(smallAmount);
         assertEq(fee, smallAmount * MAX_FEE_RATE / 10_000);
     }
 
     function testCalculateFeeWithAmountAtLowerBound() public view {
-        // Test _calculateFee with amount exactly at lower bound
         uint256 lowerBound = 1000 ether; // Exactly at the lower bound
         uint256 fee = testHelper.calculateFee(lowerBound);
         assertEq(fee, lowerBound * MAX_FEE_RATE / 10_000);
     }
 
     function testCalculateFeeWithAmountAtUpperBound() public view {
-        // Test _calculateFee with amount above upper bound
         uint256 upperBound = 100000 ether; // At the upper bound
         uint256 fee = testHelper.calculateFee(upperBound);
         assertEq(fee, upperBound * MIN_FEE_RATE / 10_000);
     }
 
     function testCalculateFeeWithAmountAboveUpperBound() public view {
-        // Test _calculateFee with amount above upper bound
         uint256 aboveUpperBound = 100001 ether; // Above the upper bound
         uint256 fee = testHelper.calculateFee(aboveUpperBound);
         assertEq(fee, aboveUpperBound * MIN_FEE_RATE / 10_000);
     }
 
     function testFeeCalculationProgression() public view {
-        // Test that fee rate decreases as amounts get larger (progressive fee structure)
-        
         uint256 baseAmount = 1000 ether;
         uint256 baseFee = testHelper.calculateFee(baseAmount);
         uint256 baseFeeRate = (baseFee * 1e18) / baseAmount; // Fee rate in basis points

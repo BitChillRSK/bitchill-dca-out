@@ -19,7 +19,10 @@ interface IDcaOutManager {
         bytes32 scheduleId;        // Unique identifier
     }
 
-    struct SaleAmounts {
+    struct SaleData {
+        address user;
+        uint256 scheduleIndex;
+        bytes32 scheduleId;
         uint256 rbtcToSpend; // Periodic sale amount
         uint256 rbtcSpent; // Amount of rBTC spent in the sale
         uint256 docReceived; // Amount of DOC received in the sale
@@ -102,9 +105,10 @@ interface IDcaOutManager {
     error DcaOutManager__SalePeriodNotElapsed(uint256 lastSaleTimestamp, uint256 nextSaleTimestamp, uint256 currentTime);
     error DcaOutManager__DocMintFailed(uint256 rbtcAmount);
     error DcaOutManager__RbtcWithdrawalFailed(address user, uint256 amount);
-    error DcaOutManager__SaleAmountTooHighForPeriodicSales(uint256 saleAmount, uint256 rbtcBalance, uint256 maxSaleAmount);
+    error DcaOutManager__CannotSetSaleAmountMoreThanBalance(uint256 saleAmount, uint256 rbtcBalance, uint256 maxSaleAmount);
     error DcaOutManager__UnauthorizedSwapper(address caller);
     error DcaOutManager__NotMoC(address caller);
+    error DcaOutManager__TotalSaleAmountMismatch(uint256 totalSaleAmount, uint256 totalRbtcToSpend);
     
     /*//////////////////////////////////////////////////////////////
                             EXTERNAL FUNCTIONS
