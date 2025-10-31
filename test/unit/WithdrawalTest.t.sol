@@ -40,7 +40,7 @@ contract WithdrawalTest is DcaOutTestBase {
         assertEq(docToken.balanceOf(user), docBalance, "User should receive DOC tokens");
     }
 
-    function testCannotWithdrawDocWithZeroAmount() public {
+    function testCannotWithdrawDocBeforeSellingRbtc() public {
         createDcaOutSchedule(user, SALE_AMOUNT, SALE_PERIOD, DEPOSIT_AMOUNT);
         vm.prank(user);
         vm.expectRevert(abi.encodeWithSelector(IDcaOutManager.DcaOutManager__NoDocToWithdraw.selector));
