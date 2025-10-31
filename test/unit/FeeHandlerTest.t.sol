@@ -1,9 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
-import {Test, console2} from "forge-std/Test.sol";
 import {DcaOutTestBase} from "./DcaOutTestBase.t.sol";
-import {IDcaOutManager} from "../../src/interfaces/IDcaOutManager.sol";
 import {IFeeHandler} from "../../src/interfaces/IFeeHandler.sol";
 import "../Constants.sol";
 

@@ -1,15 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import {Test, console2} from "forge-std/Test.sol";
 import {DcaOutTestBase} from "./DcaOutTestBase.t.sol";
-import {DcaOutManager} from "../../src/DcaOutManager.sol";
 import {IDcaOutManager} from "../../src/interfaces/IDcaOutManager.sol";
-import {IFeeHandler} from "../../src/interfaces/IFeeHandler.sol";
-import {HelperConfig} from "../../script/HelperConfig.s.sol";
-import {MockDoc} from "../mocks/MockDoc.sol";
-import {MockMocProxy} from "../mocks/MockMocProxy.sol";
-import {DcaOutManagerTestHelper} from "./DcaOutManagerTestHelper.sol";
 import "../Constants.sol";
 
 // Test helper contract to access internal functions

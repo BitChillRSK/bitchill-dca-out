@@ -151,6 +151,9 @@ interface IDcaOutManager {
     // Getters
     function getMySchedules() external view returns (DcaOutSchedule[] memory);
     function getSchedules(address user) external view returns (DcaOutSchedule[] memory);
+    function getMySchedulesCount() external view returns (uint256);
+    function getSchedulesCount(address user) external view returns (uint256);
+    function getMySchedule(uint256 scheduleIndex) external view returns (DcaOutSchedule memory);
     function getSchedule(address user, uint256 scheduleIndex) external view returns (DcaOutSchedule memory);
     function getMyScheduleRbtcBalance(uint256 scheduleIndex) external view returns (uint256);
     function getScheduleRbtcBalance(address user, uint256 scheduleIndex) external view returns (uint256);
