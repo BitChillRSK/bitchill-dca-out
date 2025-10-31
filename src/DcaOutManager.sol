@@ -515,7 +515,7 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
      * @return Array of schedules
      */
     function getMySchedules() external view override returns (DcaOutSchedule[] memory) {
-        return s_userSchedules[msg.sender];
+        return getSchedules(msg.sender);
     }
 
     /**
@@ -523,8 +523,25 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
      * @param user User address
      * @return Array of schedules
      */
-    function getSchedules(address user) external view override returns (DcaOutSchedule[] memory) {
+    function getSchedules(address user) public view override returns (DcaOutSchedule[] memory) {
         return s_userSchedules[user];
+    }
+
+    /**
+     * @notice Get number of schedules for the caller
+     * @return Number of schedules
+     */
+    function getMySchedulesCount() external view override returns (uint256) {
+        return getSchedulesCount(msg.sender);
+    }
+
+    /**
+     * @notice Get all schedules for a user
+     * @param user User address
+     * @return Number of schedules
+     */
+    function getSchedulesCount(address user) public view override returns (uint256) {
+        return getSchedules(user).length;
     }
 
     /**
@@ -534,12 +551,21 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
      * @return The schedule details
      */
     function getSchedule(address user, uint256 scheduleIndex)
-        external
+        public
         view
         override
         returns (DcaOutSchedule memory)
     {
         return s_userSchedules[user][scheduleIndex];
+    }
+
+    /**
+     * @notice Get caller's schedule
+     * @param scheduleIndex Schedule index
+     * @return The schedule details
+     */
+    function getMySchedule(uint256 scheduleIndex) external view override returns (DcaOutSchedule memory) {
+        return getSchedule(msg.sender, scheduleIndex);
     }
 
     /**
@@ -679,6 +705,10 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         return s_minSaleAmount;
     }
 
+    /*//////////////////////////////////////////////////////////////
+                                RECEIVE
+    //////////////////////////////////////////////////////////////*/
+    
     /**
      * @notice Allow contract to receive rBTC only from MoC proxy
      */
