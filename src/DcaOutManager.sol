@@ -125,9 +125,6 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         if (scheduleIndex == s_maxSchedulesPerUser) revert DcaOutManager__MaxSchedulesReached();
 
         // Create schedule ID
-        // bytes32 scheduleId = keccak256(
-        //     abi.encodePacked(msg.sender, block.timestamp, scheduleIndex)
-        // );
         bytes32 scheduleId;
         assembly {
             // Get free memory pointer
