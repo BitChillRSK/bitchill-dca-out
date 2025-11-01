@@ -225,6 +225,70 @@ contract SaleTest is DcaOutTestBase {
         dcaOutManager.batchSellRbtc(users, scheduleIndexes, scheduleIds, SALE_AMOUNT * 2 + 1);
     }
 
+    function testMultipleSalesDoNotCauseAccountingErrors() public {
+        uint256 depositAmount = 136999999999999999; // deposit amount not divisible by 5
+        uint256 saleAmount = depositAmount / 5;
+        bytes32 scheduleId = createDcaOutSchedule(user, saleAmount, 1 days, depositAmount);
+        
+        IDcaOutManager.DcaOutSchedule memory schedule = dcaOutManager.getSchedule(user, 0);
+        // Execute 5 sales (one per day)
+        for (uint256 i = 0; i < 5; i++) {
+            vm.warp(block.timestamp + 1 days);
+            vm.prank(swapper);
+            dcaOutManager.sellRbtc(user, 0, scheduleId);
+            
+            schedule = dcaOutManager.getSchedule(user, 0);
+            uint256 expectedBalance = depositAmount - (saleAmount * (i + 1));
+            assertEq(schedule.rbtcBalance, expectedBalance, "Balance should decrease by exact sale amount");
+        }
+        
+        // After 5 sales, balance should be 0 (or at most a few wei from integer division remainder)
+        schedule = dcaOutManager.getSchedule(user, 0);
+        // Note: If depositAmount is not perfectly divisible by saleAmount, there will be a small remainder
+        // This is expected from integer division and is safe
+        assertLe(schedule.rbtcBalance, 4, "Balance should be 0 or small remainder from integer division");
+    }
+
+    function testMultipleBatchSalesDoNotCauseAccountingErrors() public {
+        // Create schedules with balances that are not perfectly divisible
+        // This tests that precision errors don't accumulate across batch sales
+        uint256 depositAmount = 136999999999999999; // amount not divisible by 5
+        uint256 saleAmount = depositAmount / 5;
+        uint256 numOfUsers = 5;
+        address[] memory users = new address[](numOfUsers);
+        uint256[] memory scheduleIndexes = new uint256[](numOfUsers);
+        bytes32[] memory scheduleIds = new bytes32[](numOfUsers);
+        
+        for (uint256 i = 0; i < numOfUsers; i++) {
+            users[i] = makeAddr(string(abi.encodePacked("user", i)));
+            vm.deal(users[i], depositAmount);
+            scheduleIndexes[i] = 0;
+            scheduleIds[i] = createDcaOutSchedule(users[i], saleAmount, 1 days, depositAmount);
+        }
+        
+        // Execute batch sale - each user's balance should decrease by exactly saleAmount
+        executeBatchSale(users, scheduleIndexes, scheduleIds);
+        
+        for (uint256 i = 0; i < numOfUsers; i++) {
+            IDcaOutManager.DcaOutSchedule memory schedule = dcaOutManager.getSchedule(users[i], 0);
+            uint256 expectedBalance = depositAmount - saleAmount;
+            assertEq(schedule.rbtcBalance, expectedBalance, "Balance should decrease by exactly saleAmount after batch sale");
+        }
+        
+        // Execute 4 more batch sales to test multiple sequential batch operations
+        for (uint256 sale = 0; sale < 4; sale++) {
+            vm.warp(block.timestamp + 1 days);
+            executeBatchSale(users, scheduleIndexes, scheduleIds);
+        }
+        
+        // After 5 batch sales, all balances should be 0 (or small remainder from integer division)
+        for (uint256 i = 0; i < numOfUsers; i++) {
+            IDcaOutManager.DcaOutSchedule memory schedule = dcaOutManager.getSchedule(users[i], 0);
+            // Small remainder possible if depositAmount not perfectly divisible by 5
+            assertLe(schedule.rbtcBalance, 4, "Balance should be 0 or small remainder after 5 batch sales");
+        }
+    }
+    
     /*//////////////////////////////////////////////////////////////
                             PAUSE TESTS
     //////////////////////////////////////////////////////////////*/
