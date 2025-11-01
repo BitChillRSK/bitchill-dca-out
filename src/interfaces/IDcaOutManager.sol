@@ -12,21 +12,12 @@ interface IDcaOutManager {
     //////////////////////////////////////////////////////////////*/
 
     struct DcaOutSchedule {
-        uint256 rbtcSaleAmount;        // Amount of rBTC to sell per period
-        uint256 salePeriod;            // Time between sales (in seconds)
-        uint256 lastSaleTimestamp; // Timestamp of last execution
         uint256 rbtcBalance;       // Current rBTC balance deposited
-        bytes32 scheduleId;        // Unique identifier
-    }
-
-    struct SaleData {
-        address user;
-        uint256 scheduleIndex;
-        bytes32 scheduleId;
-        uint256 rbtcToSpend; // Periodic sale amount
-        uint256 rbtcSpent; // Amount of rBTC spent in the sale
-        uint256 docReceived; // Amount of DOC received in the sale
-        uint256 feeAmount; // Amount of DOC paid as fee
+        uint256 rbtcSaleAmount;    // Amount of rBTC to sell per period
+        uint256 salePeriod;        // Time between sales (in seconds)
+        uint256 lastSaleTimestamp; // Timestamp of last execution
+        bytes32 scheduleId;        // Unique identifier of the schedule
+        bool paused;               // Whether the schedule is paused
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -90,6 +81,8 @@ interface IDcaOutManager {
     event DcaOutManager__MaxSchedulesPerUserSet(uint256 indexed maxSchedules);
     event DcaOutManager__SaleAmountSet(address indexed user, bytes32 indexed scheduleId, uint256 indexed rbtcSaleAmount);
     event DcaOutManager__SalePeriodSet(address indexed user, bytes32 indexed scheduleId, uint256 indexed salePeriod);
+    event DcaOutManager__SchedulePaused(address indexed user, bytes32 indexed scheduleId);
+    event DcaOutManager__ScheduleUnpaused(address indexed user, bytes32 indexed scheduleId);
 
     /*//////////////////////////////////////////////////////////////
                                  ERRORS
@@ -109,6 +102,7 @@ interface IDcaOutManager {
     error DcaOutManager__UnauthorizedSwapper(address caller);
     error DcaOutManager__NotMoC(address caller);
     error DcaOutManager__TotalSaleAmountMismatch(uint256 totalSaleAmount, uint256 totalRbtcToSpend);
+    error DcaOutManager__ScheduleIsPaused(address user, bytes32 scheduleId);
     
     /*//////////////////////////////////////////////////////////////
                             EXTERNAL FUNCTIONS
@@ -124,6 +118,8 @@ interface IDcaOutManager {
     ) external payable;
     function setSaleAmount(uint256 scheduleIndex, bytes32 scheduleId, uint256 rbtcSaleAmount) external;
     function setSalePeriod(uint256 scheduleIndex, bytes32 scheduleId, uint256 salePeriod) external;
+    function pauseSchedule(uint256 scheduleIndex, bytes32 scheduleId) external;
+    function unpauseSchedule(uint256 scheduleIndex, bytes32 scheduleId) external;
     function deleteDcaOutSchedule(uint256 scheduleIndex, bytes32 scheduleId) external;
 
     // Deposit/Withdrawal

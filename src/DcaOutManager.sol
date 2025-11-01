@@ -145,7 +145,8 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
             salePeriod: salePeriod,
             lastSaleTimestamp: 0, // Never executed yet
             rbtcBalance: msg.value,
-            scheduleId: scheduleId
+            scheduleId: scheduleId,
+            paused: false
         });
 
         // Store schedule
@@ -224,6 +225,36 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         DcaOutSchedule storage schedule = s_userSchedules[msg.sender][scheduleIndex];
         schedule.salePeriod = salePeriod;
         emit DcaOutManager__SalePeriodSet(msg.sender, scheduleId, salePeriod);
+    }
+
+    /**
+     * @notice Pause a schedule to prevent sales
+     * @param scheduleIndex Index of the schedule
+     * @param scheduleId Schedule ID for validation
+     */
+    function pauseSchedule(uint256 scheduleIndex, bytes32 scheduleId)
+        external
+        override
+    {
+        _validateScheduleIndexAndId(msg.sender, scheduleIndex, scheduleId);
+        DcaOutSchedule storage schedule = s_userSchedules[msg.sender][scheduleIndex];
+        schedule.paused = true;
+        emit DcaOutManager__SchedulePaused(msg.sender, scheduleId);
+    }
+
+    /**
+     * @notice Unpause a schedule to allow sales
+     * @param scheduleIndex Index of the schedule
+     * @param scheduleId Schedule ID for validation
+     */
+    function unpauseSchedule(uint256 scheduleIndex, bytes32 scheduleId)
+        external
+        override
+    {
+        _validateScheduleIndexAndId(msg.sender, scheduleIndex, scheduleId);
+        DcaOutSchedule storage schedule = s_userSchedules[msg.sender][scheduleIndex];
+        schedule.paused = false;
+        emit DcaOutManager__ScheduleUnpaused(msg.sender, scheduleId);
     }
 
     /**
@@ -323,40 +354,46 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
      * @param scheduleIndex The schedule index
      * @param scheduleId The schedule ID for validation
      */
-    function sellRbtc(address user, uint256 scheduleIndex, bytes32 scheduleId)
-        external
-        onlySwapper
-    {
+    function sellRbtc(
+        address user,
+        uint256 scheduleIndex,
+        bytes32 scheduleId
+    ) external onlySwapper {
         _validateScheduleIndexAndId(user, scheduleIndex, scheduleId);
-        DcaOutSchedule storage schedule = s_userSchedules[user][scheduleIndex]; 
+        DcaOutSchedule storage schedule = s_userSchedules[user][scheduleIndex];
+        _validateScheduleNotPaused(user, schedule.paused, scheduleId);
         uint256 lastSaleTimestamp = schedule.lastSaleTimestamp;
         uint256 salePeriod = schedule.salePeriod;
         _validatePeriodElapsed(lastSaleTimestamp, salePeriod);
-        SaleData memory saleData;
-        saleData.rbtcToSpend = schedule.rbtcSaleAmount;
+        uint256 rbtcToSpend = schedule.rbtcSaleAmount;
+        (uint256 docReceived, uint256 rbtcSpent) = _mintDoc(rbtcToSpend);
 
-        (saleData.docReceived, saleData.rbtcSpent) = _mintDoc(saleData.rbtcToSpend);
+        schedule.rbtcBalance -= rbtcSpent;
+        unchecked {
+            schedule.lastSaleTimestamp = lastSaleTimestamp == 0
+                ? block.timestamp
+                : lastSaleTimestamp + salePeriod;
+        }
 
-        schedule.rbtcBalance -= saleData.rbtcSpent; // Will revert if input was incorrect and the schedule's rBTC balance was insufficient
-        schedule.lastSaleTimestamp = lastSaleTimestamp == 0
-            ? block.timestamp
-            : lastSaleTimestamp + salePeriod;
-
-        // Fees and credit
-        saleData.feeAmount = _calculateFee(saleData.docReceived);
-        s_userDocBalances[user] += saleData.docReceived - saleData.feeAmount;
-        _transferFee(i_docToken, saleData.feeAmount);
-
-        emit DcaOutManager__RbtcSold(user, schedule.scheduleId, saleData.rbtcToSpend, saleData.rbtcSpent, saleData.docReceived - saleData.feeAmount, saleData.docReceived);
+        uint256 feeAmount = _calculateFee(docReceived);
+        s_userDocBalances[user] += docReceived - feeAmount;
+        _transferFee(i_docToken, feeAmount);
+        emit DcaOutManager__RbtcSold(
+            user,
+            scheduleId,
+            rbtcToSpend,
+            rbtcSpent,
+            docReceived - feeAmount,
+            docReceived
+        );
     }
-
+    
     /**
      * @notice Gas-optimized trusted batch sale (assumes well-formed inputs)
-     * @dev Uses calldata, no dynamic buffers, two tight loops, unchecked increments.
-     * @param users User addresses (calldata)
-     * @param scheduleIndexes Schedule indexes (calldata)
-     * @param scheduleIds Schedule IDs (calldata)
-     * @param totalRbtcToSpend Total rBTC to spend
+     * @param users Addresses of the users on behalf of whom rBTC is going to be sold
+     * @param scheduleIndexes Indexes of the schedules that correspond to each user's sale
+     * @param scheduleIds IDs of the schedules that correspond to each user's sale
+     * @param totalRbtcToSpend Total amount of rBTC to spend
      */
     function batchSellRbtc(
         address[] calldata users,
@@ -365,50 +402,59 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         uint256 totalRbtcToSpend
     ) external onlySwapper {
         uint256 len = users.length;
-        // Mint once using provided total
         (uint256 totalDocReceived, uint256 totalRbtcSpent) = _mintDoc(totalRbtcToSpend);
-
-        // Single write pass: distribute DOC, apply change, update schedule, collect fees
         uint256 sumOfSaleAmounts;
         uint256 totalFee;
+
         for (uint256 i; i < len;) {
-            SaleData memory saleData;
-
-            saleData.user = users[i];
-            saleData.scheduleIndex = scheduleIndexes[i];
-            saleData.scheduleId = scheduleIds[i];
-            _validateScheduleIndexAndId(saleData.user, saleData.scheduleIndex, saleData.scheduleId);
-            
-            DcaOutSchedule storage schedule = s_userSchedules[saleData.user][saleData.scheduleIndex];
-            uint256 lastSaleTimestamp = schedule.lastSaleTimestamp;
-            uint256 salePeriod = schedule.salePeriod;
-            _validatePeriodElapsed(lastSaleTimestamp, salePeriod);
-            
-            saleData.rbtcToSpend = schedule.rbtcSaleAmount;
-            sumOfSaleAmounts += saleData.rbtcToSpend;
-
-            // Proportional allocations
-            saleData.docReceived = (totalDocReceived * saleData.rbtcToSpend) / totalRbtcToSpend;
-            // Potentially overestimate by 1 wei the rbtc spent by each user to avoid accounting errors
-            saleData.rbtcSpent = Math.mulDiv(totalRbtcSpent, saleData.rbtcToSpend, totalRbtcToSpend, Math.Rounding.Up);
-            schedule.rbtcBalance -= saleData.rbtcSpent; // Will revert if input was incorrect and the schedule's rBTC balance was insufficient
-            schedule.lastSaleTimestamp = lastSaleTimestamp == 0
-                ? block.timestamp
-                : lastSaleTimestamp + salePeriod;
-
-            saleData.feeAmount = _calculateFee(saleData.docReceived);
-            totalFee += saleData.feeAmount;
-            s_userDocBalances[saleData.user] += saleData.docReceived - saleData.feeAmount;
-
-            emit DcaOutManager__RbtcSold(saleData.user, saleData.scheduleId, saleData.rbtcToSpend, saleData.rbtcSpent, saleData.docReceived - saleData.feeAmount, saleData.docReceived);
-
+            (uint256 saleAmount, uint256 fee) = _processUserSale(
+                users[i],
+                scheduleIndexes[i],
+                scheduleIds[i],
+                totalDocReceived,
+                totalRbtcSpent,
+                totalRbtcToSpend
+            );
+            sumOfSaleAmounts += saleAmount;
+            totalFee += fee;
             unchecked { ++i; }
         }
 
-        if (sumOfSaleAmounts != totalRbtcToSpend) revert DcaOutManager__TotalSaleAmountMismatch(sumOfSaleAmounts, totalRbtcToSpend);
+        if (sumOfSaleAmounts != totalRbtcToSpend)
+            revert DcaOutManager__TotalSaleAmountMismatch(sumOfSaleAmounts, totalRbtcToSpend);
 
         _transferFee(i_docToken, totalFee);
         emit DcaOutManager__RbtcSoldBatch(totalRbtcToSpend, totalRbtcSpent, totalDocReceived - totalFee, totalDocReceived, len);
+    }
+
+    function _processUserSale(
+        address user,
+        uint256 scheduleIndex,
+        bytes32 scheduleId,
+        uint256 totalDocReceived,
+        uint256 totalRbtcSpent,
+        uint256 totalRbtcToSpend
+    ) internal returns (uint256 saleAmount, uint256 fee) {
+        _validateScheduleIndexAndId(user, scheduleIndex, scheduleId);
+        DcaOutSchedule storage schedule = s_userSchedules[user][scheduleIndex];
+        _validateScheduleNotPaused(user, schedule.paused, scheduleId);
+        _validatePeriodElapsed(schedule.lastSaleTimestamp, schedule.salePeriod);
+
+        saleAmount = schedule.rbtcSaleAmount;
+
+        uint256 docReceived = (totalDocReceived * saleAmount) / totalRbtcToSpend;
+        uint256 rbtcSpent = Math.mulDiv(totalRbtcSpent, saleAmount, totalRbtcToSpend, Math.Rounding.Up);
+        schedule.rbtcBalance -= rbtcSpent;
+        unchecked {
+            schedule.lastSaleTimestamp = schedule.lastSaleTimestamp == 0
+                ? block.timestamp
+                : schedule.lastSaleTimestamp + schedule.salePeriod;
+        }
+
+        fee = _calculateFee(docReceived);
+        s_userDocBalances[user] += docReceived - fee;
+
+        emit DcaOutManager__RbtcSold(user, scheduleId, saleAmount, rbtcSpent, docReceived - fee, docReceived);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -454,20 +500,6 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
                            INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-
-    /**
-     * @notice Validate schedule index exists for user
-     * @param user The user address
-     * @param scheduleIndex The schedule index
-     * @param scheduleId The schedule ID for validation
-     */
-    function _validateScheduleIndexAndId(address user, uint256 scheduleIndex, bytes32 scheduleId) private view {
-        if (scheduleIndex >= s_userSchedules[user].length) {
-            revert DcaOutManager__InexistentScheduleIndex(user, scheduleIndex, s_userSchedules[user].length);
-        }
-        if (s_userSchedules[user][scheduleIndex].scheduleId != scheduleId) revert DcaOutManager__ScheduleIdAndIndexMismatch(scheduleId, s_userSchedules[user][scheduleIndex].scheduleId);
-    }
-
     /**
      * @notice Validate that the sale amount is valid against the rBTC balance
      * @param saleAmount The sale amount to validate
@@ -487,10 +519,38 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         if (salePeriod < s_minSalePeriod) revert DcaOutManager__SalePeriodBelowMinimum(salePeriod, s_minSalePeriod);
     }
 
+    /**
+     * @notice Validate schedule index exists for user
+     * @param user The user address
+     * @param scheduleIndex The schedule index
+     * @param scheduleId The schedule ID for validation
+     */
+    function _validateScheduleIndexAndId(address user, uint256 scheduleIndex, bytes32 scheduleId) private view {
+        if (scheduleIndex >= s_userSchedules[user].length) {
+            revert DcaOutManager__InexistentScheduleIndex(user, scheduleIndex, s_userSchedules[user].length);
+        }
+        if (s_userSchedules[user][scheduleIndex].scheduleId != scheduleId) revert DcaOutManager__ScheduleIdAndIndexMismatch(scheduleId, s_userSchedules[user][scheduleIndex].scheduleId);
+    }
+
+    /**
+     * @notice Validate that the period has elapsed since the last sale
+     * @param lastSaleTimestamp The timestamp of the last sale
+     * @param salePeriod The sale period
+     */
     function _validatePeriodElapsed(uint256 lastSaleTimestamp, uint256 salePeriod) private view {
         if (lastSaleTimestamp != 0 && block.timestamp < lastSaleTimestamp + salePeriod) {
             revert DcaOutManager__SalePeriodNotElapsed(lastSaleTimestamp, lastSaleTimestamp + salePeriod, block.timestamp);
         }
+    }
+
+    /**
+     * @notice Validate that the schedule is not paused
+     * @param user The user address
+     * @param paused Whether the schedule is paused
+     * @param scheduleId The schedule ID for validation
+     */
+    function _validateScheduleNotPaused(address user, bool paused, bytes32 scheduleId) private view {
+        if (paused) revert DcaOutManager__ScheduleIsPaused(user, scheduleId);
     }
 
     /**

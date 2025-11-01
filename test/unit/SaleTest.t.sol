@@ -224,4 +224,96 @@ contract SaleTest is DcaOutTestBase {
         vm.prank(swapper);
         dcaOutManager.batchSellRbtc(users, scheduleIndexes, scheduleIds, SALE_AMOUNT * 2 + 1);
     }
+
+    /*//////////////////////////////////////////////////////////////
+                            PAUSE TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    function testCannotSellRbtcWhenSchedulePaused() public {
+        bytes32 scheduleId = createDcaOutSchedule(user, SALE_AMOUNT, SALE_PERIOD, DEPOSIT_AMOUNT);
+
+        // Pause the schedule
+        vm.prank(user);
+        dcaOutManager.pauseSchedule(0, scheduleId);
+
+        // Try to sell - should fail
+        vm.expectRevert(abi.encodeWithSelector(IDcaOutManager.DcaOutManager__ScheduleIsPaused.selector, user, scheduleId));
+        vm.prank(swapper);
+        dcaOutManager.sellRbtc(user, 0, scheduleId);
+    }
+
+    function testCannotBatchSellRbtcWhenSchedulePaused() public {
+        bytes32 scheduleId1 = createDcaOutSchedule(user, SALE_AMOUNT, SALE_PERIOD, DEPOSIT_AMOUNT);
+        bytes32 scheduleId2 = createDcaOutSchedule(user2, SALE_AMOUNT, SALE_PERIOD, DEPOSIT_AMOUNT);
+
+        // Pause user's schedule
+        vm.prank(user);
+        dcaOutManager.pauseSchedule(0, scheduleId1);
+
+        // Try to batch sell - should fail because user's schedule is paused
+        address[] memory users = new address[](2);
+        uint256[] memory scheduleIndexes = new uint256[](2);
+        bytes32[] memory scheduleIds = new bytes32[](2);
+        users[0] = user;
+        users[1] = user2;
+        scheduleIndexes[0] = 0;
+        scheduleIndexes[1] = 0;
+        scheduleIds[0] = scheduleId1;
+        scheduleIds[1] = scheduleId2;
+
+        vm.expectRevert(abi.encodeWithSelector(IDcaOutManager.DcaOutManager__ScheduleIsPaused.selector, user, scheduleId1));
+        vm.prank(swapper);
+        dcaOutManager.batchSellRbtc(users, scheduleIndexes, scheduleIds, SALE_AMOUNT * 2);
+    }
+
+    function testCanSellRbtcAfterUnpausingSchedule() public {
+        bytes32 scheduleId = createDcaOutSchedule(user, SALE_AMOUNT, SALE_PERIOD, DEPOSIT_AMOUNT);
+
+        // Pause the schedule
+        vm.prank(user);
+        dcaOutManager.pauseSchedule(0, scheduleId);
+
+        // Verify we can't sell when paused
+        vm.expectRevert(abi.encodeWithSelector(IDcaOutManager.DcaOutManager__ScheduleIsPaused.selector, user, scheduleId));
+        vm.prank(swapper);
+        dcaOutManager.sellRbtc(user, 0, scheduleId);
+
+        // Unpause the schedule
+        vm.prank(user);
+        dcaOutManager.unpauseSchedule(0, scheduleId);
+
+        // Now we should be able to sell
+        executeSale(user, 0, scheduleId);
+    }
+
+    function testCanBatchSellRbtcAfterUnpausingSchedule() public {
+        bytes32 scheduleId1 = createDcaOutSchedule(user, SALE_AMOUNT, SALE_PERIOD, DEPOSIT_AMOUNT);
+        bytes32 scheduleId2 = createDcaOutSchedule(user2, SALE_AMOUNT, SALE_PERIOD, DEPOSIT_AMOUNT);
+
+        // Pause user's schedule
+        vm.prank(user);
+        dcaOutManager.pauseSchedule(0, scheduleId1);
+
+        // Verify we can't batch sell when paused
+        address[] memory users = new address[](2);
+        uint256[] memory scheduleIndexes = new uint256[](2);
+        bytes32[] memory scheduleIds = new bytes32[](2);
+        users[0] = user;
+        users[1] = user2;
+        scheduleIndexes[0] = 0;
+        scheduleIndexes[1] = 0;
+        scheduleIds[0] = scheduleId1;
+        scheduleIds[1] = scheduleId2;
+
+        vm.expectRevert(abi.encodeWithSelector(IDcaOutManager.DcaOutManager__ScheduleIsPaused.selector, user, scheduleId1));
+        vm.prank(swapper);
+        dcaOutManager.batchSellRbtc(users, scheduleIndexes, scheduleIds, SALE_AMOUNT * 2);
+
+        // Unpause the schedule
+        vm.prank(user);
+        dcaOutManager.unpauseSchedule(0, scheduleId1);
+
+        // Now we should be able to batch sell
+        executeBatchSale(users, scheduleIndexes, scheduleIds);
+    }
 }
