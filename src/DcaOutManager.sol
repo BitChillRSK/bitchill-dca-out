@@ -55,14 +55,6 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         _;
     }
 
-    /**
-     * @notice Only allow MoC proxy to send rBTC to the contract
-     */
-    modifier onlyMoC() {
-        if (msg.sender != address(i_mocProxy)) revert DcaOutManager__NotMoC(msg.sender);
-        _;
-    }
-
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -813,7 +805,8 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
      *      This means the stored MoC commission rate (s_mocCommission) is incorrect
      *      and needs to be updated via setMocCommission().
      */
-    receive() external payable onlyMoC {
+    receive() external payable {
+        if (msg.sender != address(i_mocProxy)) revert DcaOutManager__NotMoC(msg.sender);
         if (msg.value > 0) revert DcaOutManager__UnexpectedChangeReturned(msg.value);
     }
 }

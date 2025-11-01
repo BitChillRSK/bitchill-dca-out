@@ -24,7 +24,7 @@ abstract contract FeeHandler is IFeeHandler, Ownable {
     uint256 internal s_feePurchaseLowerBound; // Amount below which max fee applies
     uint256 internal s_feePurchaseUpperBound; // Amount above which min fee applies
     address internal s_feeCollector; // Address to receive collected fees
-    uint256 constant FEE_PERCENTAGE_DIVISOR = 10_000; // Basis points divisor (100 * 100)
+    uint256 constant FEE_PERCENTAGE_DIVISOR = 1e4; // Basis points divisor (100 * 100)
 
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
