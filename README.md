@@ -188,10 +188,46 @@ MAX_SCHEDULES_PER_USER = 10;         // Maximum schedules per user
 **Rootstock Mainnet:**
 - DOC Token: `0xe700691dA7b9851F2F35f8b8182c69c53CcaD9Db`
 - MoC Proxy: `0xf773B590aF754D597770937Fa8ea7AbDf2668370`
+- MoC Inrate: `0xc0f9B54c41E3d0587Ce0F7540738d8d649b0A3F3` (for commission queries)
 
 **Rootstock Testnet:**
 - DOC Token: `0xCB46c0ddc60D18eFEB0E586C17Af6ea36452Dae0`
 - MoC Proxy: `0x2820f6d4D199B8D8838A4B26F9917754B86a0c1F`
+
+### MoC Commission Handling
+
+The protocol integrates with Money on Chain (MoC) to mint DOC tokens. MoC charges a commission on minting operations, which must be accurately tracked in the contract.
+
+**Current Commission Rate:**
+- **0.15%** (confirmed on mainnet as of deployment)
+- Stored as `15e14` (using precision factor 1e18)
+
+**How It Works:**
+1. The contract calculates the exact rBTC amount needed, accounting for MoC's commission
+2. It sends exactly this amount to MoC's `mintDoc()` function
+3. If MoC returns any change (indicating a commission rate mismatch), the transaction reverts
+4. This ensures accuracy and forces updates when MoC changes their commission rate
+
+**Checking Current MoC Commission:**
+```bash
+cast call <MOC_INRATE_ADDRESS> 'commissionRatesByTxType(uint8)' 3 --rpc-url $MAINNET_RPC_URL
+```
+Where `3` is the transaction type for `MINT_DOC_FEES_RBTC`.
+
+**Updating Commission Rate:**
+If MoC changes their commission rate, the contract owner must update it via `setMocCommission()`:
+```solidity
+// Example: Update to 0.2% (2e15)
+dcaOutManager.setMocCommission(2e15);
+```
+
+**Safety Mechanism:**
+The contract's `receive()` function reverts if MoC sends any rBTC back (change), which would indicate:
+- The stored commission rate is incorrect
+- The commission rate needs to be updated
+- Transactions will fail until the rate is corrected
+
+This design ensures **deterministic transactions** - users always know exactly how much rBTC will be spent, with no unexpected change handling.
 
 ## 🧪 Testing
 
@@ -199,36 +235,44 @@ The protocol includes comprehensive test coverage:
 
 ### Test Categories
 
-- **Schedule Management** (7 tests)
-  - Create/delete schedules
+- **Schedule Management** (24 tests) - `ScheduleTest.t.sol`
+  - Create/delete/update schedules
   - Multiple schedules
-  - Validation (amount, period, max schedules)
+  - Validation (amount, period, max schedules, deposits, withdrawals)
 
-- **Deposits** (3 tests)
-  - Single and multiple deposits
-  - Schedule ID validation
-
-- **Execution** (4 tests)
-  - Single execution
+- **Sales** (17 tests) - `SaleTest.t.sol`
+  - Single and batch execution
   - Fee collection
   - Authorization checks
   - Balance/timing validations
+  - Pause/unpause functionality
 
-- **Withdrawals** (3 tests)
-  - DOC withdrawal
-  - rBTC withdrawal
-  - Schedule deletion
+- **Fee Handler** (22 tests) - `FeeHandlerTest.t.sol`
+  - Fee calculation across all ranges
+  - Progressive fee structure
+  - Owner configuration
 
-- **Batch Operations** (1 test)
-  - Multi-user batch minting
-
-- **Access Control** (2 tests)
+- **Access Control** (11 tests) - `AdminTest.t.sol`
+  - Owner functions (min amounts, periods, commission)
   - Grant/revoke swapper role
+  - Authorization checks
 
-- **Getters** (3 tests)
-  - Protocol parameters
+- **Getters** (16 tests) - `GetterTest.t.sol`
+  - All protocol parameters
+  - Schedule and balance queries
 
-**Result: 22/22 tests passing ✅**
+- **Withdrawals** (3 tests) - `WithdrawalTest.t.sol`
+  - DOC withdrawal
+  - Error conditions
+
+- **Security** (2 tests) - `OnlyMoCModifierTest.sol`
+  - MoC-only receive function
+  - Change prevention mechanism
+
+- **Helper** (1 test) - `DcaOutTestBase.t.sol`
+  - Test helper validation
+
+**Result: 96/96 tests passing ✅**
 
 ## 📁 Project Structure
 
@@ -260,6 +304,8 @@ bitchill-dca-out/
 3. **Input Validation**: All parameters validated before state changes
 4. **Schedule Validation**: Schedule IDs prevent unauthorized operations
 5. **Safe Transfers**: SafeERC20 for all DOC token transfers
+6. **MoC Commission Accuracy**: Contract reverts if MoC commission rate is incorrect, preventing silent accounting errors
+7. **Change Prevention**: The `receive()` function prevents unexpected rBTC returns from MoC, ensuring deterministic transactions
 
 ### Audit Status
 

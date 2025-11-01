@@ -53,17 +53,15 @@ interface IDcaOutManager {
     event DcaOutManager__RbtcSold(
         address indexed user,
         bytes32 indexed scheduleId,
-        uint256 indexed rbtcSaleAmount, // establieshed in the schedule
-        uint256 rbtcSpent, // amount of rBTC spent in the sale (rbtcSaleAmount - change returned by MoC)
+        uint256 indexed rbtcSaleAmount, // established in the schedule
         uint256 docReceivedAfterFee,
         uint256 docReceived
     );
 
     event DcaOutManager__RbtcSoldBatch(
         uint256 indexed totalRbtcSaleAmount,
-        uint256 indexed totalRbtcSpent,
         uint256 indexed totalDocReceivedAfterFee,
-        uint256 totalDocReceived,
+        uint256 indexed totalDocReceived,
         uint256 usersCount
     );
 
@@ -105,6 +103,7 @@ interface IDcaOutManager {
     error DcaOutManager__NotMoC(address caller);
     error DcaOutManager__TotalSaleAmountMismatch(uint256 totalSaleAmount, uint256 totalRbtcToSpend);
     error DcaOutManager__ScheduleIsPaused(address user, bytes32 scheduleId);
+    error DcaOutManager__UnexpectedChangeReturned(uint256 amount);
     
     /*//////////////////////////////////////////////////////////////
                             EXTERNAL FUNCTIONS

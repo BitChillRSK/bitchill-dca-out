@@ -366,9 +366,9 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         uint256 salePeriod = schedule.salePeriod;
         _validatePeriodElapsed(lastSaleTimestamp, salePeriod);
         uint256 rbtcToSpend = schedule.rbtcSaleAmount;
-        (uint256 docReceived, uint256 rbtcSpent) = _mintDoc(rbtcToSpend);
+        uint256 docReceived = _mintDoc(rbtcToSpend);
 
-        schedule.rbtcBalance -= rbtcSpent;
+        schedule.rbtcBalance -= rbtcToSpend;
         unchecked {
             schedule.lastSaleTimestamp = lastSaleTimestamp == 0
                 ? block.timestamp
@@ -382,7 +382,6 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
             user,
             scheduleId,
             rbtcToSpend,
-            rbtcSpent,
             docReceived - feeAmount,
             docReceived
         );
@@ -402,7 +401,7 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         uint256 totalRbtcToSpend
     ) external onlySwapper {
         uint256 len = users.length;
-        (uint256 totalDocReceived, uint256 totalRbtcSpent) = _mintDoc(totalRbtcToSpend);
+        uint256 totalDocReceived = _mintDoc(totalRbtcToSpend);
         uint256 sumOfSaleAmounts;
         uint256 totalFee;
 
@@ -412,7 +411,6 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
                 scheduleIndexes[i],
                 scheduleIds[i],
                 totalDocReceived,
-                totalRbtcSpent,
                 totalRbtcToSpend
             );
             sumOfSaleAmounts += saleAmount;
@@ -424,7 +422,7 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
             revert DcaOutManager__TotalSaleAmountMismatch(sumOfSaleAmounts, totalRbtcToSpend);
 
         _transferFee(i_docToken, totalFee);
-        emit DcaOutManager__RbtcSoldBatch(totalRbtcToSpend, totalRbtcSpent, totalDocReceived - totalFee, totalDocReceived, len);
+        emit DcaOutManager__RbtcSoldBatch(totalRbtcToSpend, totalDocReceived - totalFee, totalDocReceived, len);
     }
 
     function _processUserSale(
@@ -432,7 +430,6 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         uint256 scheduleIndex,
         bytes32 scheduleId,
         uint256 totalDocReceived,
-        uint256 totalRbtcSpent,
         uint256 totalRbtcToSpend
     ) internal returns (uint256 saleAmount, uint256 fee) {
         _validateScheduleIndexAndId(user, scheduleIndex, scheduleId);
@@ -443,8 +440,7 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         saleAmount = schedule.rbtcSaleAmount;
 
         uint256 docReceived = (totalDocReceived * saleAmount) / totalRbtcToSpend;
-        uint256 rbtcSpent = Math.mulDiv(totalRbtcSpent, saleAmount, totalRbtcToSpend, Math.Rounding.Up);
-        schedule.rbtcBalance -= rbtcSpent;
+        schedule.rbtcBalance -= saleAmount;
         unchecked {
             schedule.lastSaleTimestamp = schedule.lastSaleTimestamp == 0
                 ? block.timestamp
@@ -454,7 +450,7 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         fee = _calculateFee(docReceived);
         s_userDocBalances[user] += docReceived - fee;
 
-        emit DcaOutManager__RbtcSold(user, scheduleId, saleAmount, rbtcSpent, docReceived - fee, docReceived);
+        emit DcaOutManager__RbtcSold(user, scheduleId, saleAmount, docReceived - fee, docReceived);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -578,22 +574,23 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
     }
 
     /**
-     * @notice Mint DOC from MoC protocol by depositing rBTC and track change
-     * @param rbtcSaleAmount Amount of rBTC to send
+     * @notice Mint DOC from MoC protocol by depositing rBTC
+     * @dev Sends exactly rbtcSaleAmount to MoC. If change is returned, the receive() function will revert,
+     *      indicating the stored MoC commission rate is incorrect and needs to be updated.
+     *      Since we ensure the commission rate is correct, exactly rbtcSaleAmount will be spent.
+     * @param rbtcSaleAmount Amount of rBTC to send (exact amount, no change expected)
      * @return docReceived Amount of DOC received
-     * @return rbtcSpent Amount of rBTC spent to mint DOC (rbtcSaleAmount - change returned by MoC)
      */
-    function _mintDoc(uint256 rbtcSaleAmount) internal returns (uint256 docReceived, uint256 rbtcSpent) {
+    function _mintDoc(uint256 rbtcSaleAmount) internal returns (uint256 docReceived) {
         uint256 docBalanceBefore = i_docToken.balanceOf(address(this));
-        uint256 rbtcBalanceBefore = address(this).balance;
 
-        // Calculate the rBTC amount that will be used to mint DOC (msg.value - MoC commission)
+        // Calculate the rBTC amount that will be used to mint DOC (accounting for MoC commission)
         uint256 btcToMintDoc = Math.mulDiv(rbtcSaleAmount, PRECISION_FACTOR, PRECISION_FACTOR + s_mocCommission, Math.Rounding.Up);
         
         // Call MoC to mint DOC (payable function)
+        // If change is returned, receive() will revert, indicating commission rate mismatch
         try i_mocProxy.mintDoc{value: rbtcSaleAmount}(btcToMintDoc) {
             docReceived = i_docToken.balanceOf(address(this)) - docBalanceBefore;
-            rbtcSpent = rbtcBalanceBefore - address(this).balance;
         } catch {
             revert DcaOutManager__DocMintFailed(rbtcSaleAmount);
         } 
@@ -812,6 +809,11 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
     
     /**
      * @notice Allow contract to receive rBTC only from MoC proxy
+     * @dev Reverts if any rBTC is received, as this indicates MoC returned change.
+     *      This means the stored MoC commission rate (s_mocCommission) is incorrect
+     *      and needs to be updated via setMocCommission().
      */
-    receive() external payable onlyMoC {}
+    receive() external payable onlyMoC {
+        if (msg.value > 0) revert DcaOutManager__UnexpectedChangeReturned(msg.value);
+    }
 }
