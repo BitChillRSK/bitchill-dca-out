@@ -28,6 +28,7 @@ interface IDcaOutManager {
         address indexed user,
         uint256 indexed scheduleIndex,
         bytes32 indexed scheduleId,
+        uint256 rbtcDepositAmount,     
         uint256 rbtcSaleAmount,
         uint256 salePeriod
     );
@@ -148,20 +149,22 @@ interface IDcaOutManager {
     //////////////////////////////////////////////////////////////*/
 
     // Getters
-    function getMySchedules() external view returns (DcaOutSchedule[] memory);
     function getSchedules(address user) external view returns (DcaOutSchedule[] memory);
-    function getMySchedulesCount() external view returns (uint256);
+    function getMySchedules() external view returns (DcaOutSchedule[] memory);
     function getSchedulesCount(address user) external view returns (uint256);
-    function getMySchedule(uint256 scheduleIndex) external view returns (DcaOutSchedule memory);
+    function getMySchedulesCount() external view returns (uint256);
     function getSchedule(address user, uint256 scheduleIndex) external view returns (DcaOutSchedule memory);
-    function getMyScheduleRbtcBalance(uint256 scheduleIndex) external view returns (uint256);
+    function getMySchedule(uint256 scheduleIndex) external view returns (DcaOutSchedule memory);
     function getScheduleRbtcBalance(address user, uint256 scheduleIndex) external view returns (uint256);
-    function getMyScheduleSaleAmount(uint256 scheduleIndex) external view returns (uint256);
+    function getMyScheduleRbtcBalance(uint256 scheduleIndex) external view returns (uint256);
     function getScheduleSaleAmount(address user, uint256 scheduleIndex) external view returns (uint256);
-    function getMyScheduleSalePeriod(uint256 scheduleIndex) external view returns (uint256);
+    function getMyScheduleSaleAmount(uint256 scheduleIndex) external view returns (uint256);
     function getScheduleSalePeriod(address user, uint256 scheduleIndex) external view returns (uint256);
-    function getMyScheduleId(uint256 scheduleIndex) external view returns (bytes32);
+    function getMyScheduleSalePeriod(uint256 scheduleIndex) external view returns (uint256);
     function getScheduleId(address user, uint256 scheduleIndex) external view returns (bytes32);
+    function getMyScheduleId(uint256 scheduleIndex) external view returns (bytes32);
+    function getScheduleIsPaused(address user, uint256 scheduleIndex) external view returns (bool);
+    function getMyScheduleIsPaused(uint256 scheduleIndex) external view returns (bool);
     function getMyDocBalance() external view returns (uint256);
     function getUserDocBalance(address user) external view returns (uint256);
     function getMinSalePeriod() external view returns (uint256);

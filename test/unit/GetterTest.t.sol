@@ -37,68 +37,56 @@ contract GetterTest is DcaOutTestBase {
     //////////////////////////////////////////////////////////////*/
 
     function testGetMySchedules() public {
-        vm.startPrank(user);
-        dcaOutManager.createDcaOutSchedule{value: DEPOSIT_AMOUNT}(SALE_AMOUNT, SALE_PERIOD);
-        dcaOutManager.createDcaOutSchedule{value: DEPOSIT_AMOUNT * 2}(SALE_AMOUNT * 2, SALE_PERIOD * 2);
-        
+        createDcaOutSchedule(user, SALE_AMOUNT, SALE_PERIOD, DEPOSIT_AMOUNT);
+        createDcaOutSchedule(user, SALE_AMOUNT * 2, SALE_PERIOD * 2, DEPOSIT_AMOUNT * 2);
+        vm.prank(user);
         IDcaOutManager.DcaOutSchedule[] memory mySchedules = dcaOutManager.getMySchedules();
         assertEq(mySchedules.length, 2, "Should have 2 schedules");
         assertEq(mySchedules[0].rbtcSaleAmount, SALE_AMOUNT, "First schedule amount");
         assertEq(mySchedules[1].rbtcSaleAmount, SALE_AMOUNT * 2, "Second schedule amount");
-        vm.stopPrank();
     }
 
     function testGetMyScheduleRbtcBalance() public {
-        vm.startPrank(user);
-        dcaOutManager.createDcaOutSchedule{value: DEPOSIT_AMOUNT}(SALE_AMOUNT, SALE_PERIOD);
-
+        createDcaOutSchedule(user, SALE_AMOUNT, SALE_PERIOD, DEPOSIT_AMOUNT);
+        vm.prank(user);
         uint256 balance = dcaOutManager.getMyScheduleRbtcBalance(0);
         assertEq(balance, DEPOSIT_AMOUNT, "Should have deposit amount balance");
-        vm.stopPrank();
     }
 
     function testgetMyScheduleSaleAmount() public {
-        vm.startPrank(user);
-        dcaOutManager.createDcaOutSchedule{value: DEPOSIT_AMOUNT}(SALE_AMOUNT, SALE_PERIOD);
-        
+        createDcaOutSchedule(user, SALE_AMOUNT, SALE_PERIOD, DEPOSIT_AMOUNT);
+        vm.prank(user);
         uint256 amount = dcaOutManager.getMyScheduleSaleAmount(0);
         assertEq(amount, SALE_AMOUNT, "Should return sale amount");
-        vm.stopPrank();
     }
 
     function testGetMyScheduleSalePeriod() public {
-        vm.startPrank(user);
+        createDcaOutSchedule(user, SALE_AMOUNT, SALE_PERIOD, DEPOSIT_AMOUNT);
         dcaOutManager.createDcaOutSchedule{value: DEPOSIT_AMOUNT}(SALE_AMOUNT, SALE_PERIOD);
-        
+        vm.prank(user);
         uint256 period = dcaOutManager.getMyScheduleSalePeriod(0);
         assertEq(period, SALE_PERIOD, "Should return sale period");
-        vm.stopPrank();
     }
 
     function testGetMyScheduleId() public {
-        vm.startPrank(user);
+        createDcaOutSchedule(user, SALE_AMOUNT, SALE_PERIOD, DEPOSIT_AMOUNT);
         dcaOutManager.createDcaOutSchedule{value: DEPOSIT_AMOUNT}(SALE_AMOUNT, SALE_PERIOD);
-        
+        vm.prank(user);
         bytes32 scheduleId = dcaOutManager.getMyScheduleId(0);
         assertNotEq(scheduleId, bytes32(0), "Schedule ID should not be zero");
-        vm.stopPrank();
     }
 
     function testGetMyDocBalance() public {
         // First create a schedule and execute a sale to get some DOC
-        vm.startPrank(user);
-        dcaOutManager.createDcaOutSchedule{value: DEPOSIT_AMOUNT}(SALE_AMOUNT, SALE_PERIOD);
-        IDcaOutManager.DcaOutSchedule memory schedule = dcaOutManager.getSchedule(user, 0);
-        vm.stopPrank();
+        bytes32 scheduleId = createDcaOutSchedule(user, SALE_AMOUNT, SALE_PERIOD, DEPOSIT_AMOUNT);
 
         // Execute sale to get DOC
         vm.prank(swapper);
-        dcaOutManager.sellRbtc(user, 0, schedule.scheduleId);
+        dcaOutManager.sellRbtc(user, 0, scheduleId);
 
-        vm.startPrank(user);
+        vm.prank(user);
         uint256 docBalance = dcaOutManager.getMyDocBalance();
-        assertTrue(docBalance > 0, "User should have DOC balance");
-        vm.stopPrank();
+        assertGe(docBalance, 0, "User should have DOC balance");
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -106,61 +94,65 @@ contract GetterTest is DcaOutTestBase {
     //////////////////////////////////////////////////////////////*/
 
     function testGetSchedule() public {
-        vm.startPrank(user);
-        dcaOutManager.createDcaOutSchedule{value: DEPOSIT_AMOUNT}(SALE_AMOUNT, SALE_PERIOD);
-        vm.stopPrank();
-
+        createDcaOutSchedule(user, SALE_AMOUNT, SALE_PERIOD, DEPOSIT_AMOUNT);
+        vm.prank(user);
         IDcaOutManager.DcaOutSchedule memory schedule = dcaOutManager.getSchedule(user, 0);
         assertEq(schedule.rbtcSaleAmount, SALE_AMOUNT, "Wrong rBTC amount");
         assertEq(schedule.salePeriod, SALE_PERIOD, "Wrong period");
-        assertEq(schedule.rbtcBalance, DEPOSIT_AMOUNT, "Should have initial deposit");
-    }
+        assertEq(schedule.rbtcBalance, DEPOSIT_AMOUNT, "Should have initial deposit");    }
 
     function testgetScheduleRbtcBalance() public {
-        vm.startPrank(user);
-        dcaOutManager.createDcaOutSchedule{value: DEPOSIT_AMOUNT}(SALE_AMOUNT, SALE_PERIOD);
-        vm.stopPrank();
-
+        createDcaOutSchedule(user, SALE_AMOUNT, SALE_PERIOD, DEPOSIT_AMOUNT);
+        vm.prank(user);
         uint256 balance = dcaOutManager.getScheduleRbtcBalance(user, 0);
         assertEq(balance, DEPOSIT_AMOUNT, "Should have initial deposit");
     }
 
     function testGetScheduleRbtcAmount() public {
-        vm.startPrank(user);
-        dcaOutManager.createDcaOutSchedule{value: DEPOSIT_AMOUNT}(SALE_AMOUNT, SALE_PERIOD);
-        vm.stopPrank();
-
+        createDcaOutSchedule(user, SALE_AMOUNT, SALE_PERIOD, DEPOSIT_AMOUNT);
+        vm.prank(user);
         uint256 amount = dcaOutManager.getScheduleSaleAmount(user, 0);
         assertEq(amount, SALE_AMOUNT, "Wrong rBTC amount");
     }
 
     function testGetScheduleSalePeriod() public {
-        vm.startPrank(user);
-        dcaOutManager.createDcaOutSchedule{value: DEPOSIT_AMOUNT}(SALE_AMOUNT, SALE_PERIOD);
-        vm.stopPrank();
-
+        createDcaOutSchedule(user, SALE_AMOUNT, SALE_PERIOD, DEPOSIT_AMOUNT);
+        vm.prank(user);
         uint256 period = dcaOutManager.getScheduleSalePeriod(user, 0);
         assertEq(period, SALE_PERIOD, "Wrong period");
     }
 
     function testGetScheduleId() public {
-        vm.startPrank(user);
-        dcaOutManager.createDcaOutSchedule{value: DEPOSIT_AMOUNT}(SALE_AMOUNT, SALE_PERIOD);
-        vm.stopPrank();
-
+        createDcaOutSchedule(user, SALE_AMOUNT, SALE_PERIOD, DEPOSIT_AMOUNT);
+        vm.prank(user);
         bytes32 scheduleId = dcaOutManager.getScheduleId(user, 0);
         assertNotEq(scheduleId, bytes32(0), "Schedule ID should not be zero");
     }
 
+    function testGetMyScheduleIsPaused() public {
+        bytes32 scheduleId = createDcaOutSchedule(user, SALE_AMOUNT, SALE_PERIOD, DEPOSIT_AMOUNT);
+        vm.prank(user);
+        dcaOutManager.pauseSchedule(0, scheduleId);
+        vm.prank(user);
+        bool isPaused = dcaOutManager.getMyScheduleIsPaused(0);
+        assertTrue(isPaused, "Schedule should be paused");
+    }
+
+    function testGetScheduleIsPaused() public {
+        bytes32 scheduleId = createDcaOutSchedule(user, SALE_AMOUNT, SALE_PERIOD, DEPOSIT_AMOUNT);
+        vm.prank(user);
+        dcaOutManager.pauseSchedule(0, scheduleId);
+        vm.prank(user);
+        bool isPaused = dcaOutManager.getScheduleIsPaused(user, 0);
+        assertTrue(isPaused, "Schedule should be paused");
+    }
+
     function testGetUserDocBalance() public {
-        vm.startPrank(user);
-        dcaOutManager.createDcaOutSchedule{value: DEPOSIT_AMOUNT}(SALE_AMOUNT, SALE_PERIOD);
-        vm.stopPrank();
+        bytes32 scheduleId = createDcaOutSchedule(user, SALE_AMOUNT, SALE_PERIOD, DEPOSIT_AMOUNT);
 
         // Execute a sale to generate DOC balance
-        vm.startPrank(swapper);
-        dcaOutManager.sellRbtc(user, 0, dcaOutManager.getScheduleId(user, 0));
-        vm.stopPrank();
+        vm.prank(swapper);
+        dcaOutManager.sellRbtc(user, 0, scheduleId);
 
         uint256 balance = dcaOutManager.getUserDocBalance(user);
         assertTrue(balance > 0, "User should have DOC balance");

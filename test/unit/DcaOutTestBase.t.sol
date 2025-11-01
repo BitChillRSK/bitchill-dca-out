@@ -53,6 +53,7 @@ contract DcaOutTestBase is Test {
         address indexed user,
         uint256 indexed scheduleIndex,
         bytes32 indexed scheduleId,
+        uint256 rbtcDepositAmount,
         uint256 rbtcSaleAmount,
         uint256 salePeriod
     );
@@ -189,7 +190,7 @@ contract DcaOutTestBase is Test {
         );
         
         vm.expectEmit(true, true, true, true);
-        emit DcaOutManager__ScheduleCreated(userAddress, scheduleIndex, scheduleId, rbtcSaleAmount, salePeriod);
+        emit DcaOutManager__ScheduleCreated(userAddress, scheduleIndex, scheduleId, initialDeposit, rbtcSaleAmount, salePeriod);
         vm.prank(userAddress);
         dcaOutManager.createDcaOutSchedule{value: initialDeposit}(rbtcSaleAmount, salePeriod);
 

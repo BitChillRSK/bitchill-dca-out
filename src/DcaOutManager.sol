@@ -144,7 +144,7 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         // Store schedule
         schedules.push(newSchedule);
 
-        emit DcaOutManager__ScheduleCreated(msg.sender, scheduleIndex, scheduleId, rbtcSaleAmount, salePeriod);
+        emit DcaOutManager__ScheduleCreated(msg.sender, scheduleIndex, scheduleId, msg.value, rbtcSaleAmount, salePeriod);
     }
 
     /**
@@ -593,6 +593,15 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
     //////////////////////////////////////////////////////////////*/
 
     /**
+     * @notice Get all schedules for a user
+     * @param user User address
+     * @return Array of schedules
+     */
+    function getSchedules(address user) public view override returns (DcaOutSchedule[] memory) {
+        return s_userSchedules[user];
+    }
+
+    /**
      * @notice Get all schedules for the caller
      * @return Array of schedules
      */
@@ -603,10 +612,10 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
     /**
      * @notice Get all schedules for a user
      * @param user User address
-     * @return Array of schedules
+     * @return Number of schedules
      */
-    function getSchedules(address user) public view override returns (DcaOutSchedule[] memory) {
-        return s_userSchedules[user];
+    function getSchedulesCount(address user) public view override returns (uint256) {
+        return getSchedules(user).length;
     }
 
     /**
@@ -615,15 +624,6 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
      */
     function getMySchedulesCount() external view override returns (uint256) {
         return getSchedulesCount(msg.sender);
-    }
-
-    /**
-     * @notice Get all schedules for a user
-     * @param user User address
-     * @return Number of schedules
-     */
-    function getSchedulesCount(address user) public view override returns (uint256) {
-        return getSchedules(user).length;
     }
 
     /**
@@ -651,15 +651,6 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
     }
 
     /**
-     * @notice Get rBTC balance for caller's schedule
-     * @param scheduleIndex Schedule index
-     * @return rBTC balance
-     */
-    function getMyScheduleRbtcBalance(uint256 scheduleIndex) external view override returns (uint256) {
-        return getScheduleRbtcBalance(msg.sender, scheduleIndex);
-    }
-
-    /**
      * @notice Get rBTC balance for a user's schedule
      * @param user User address
      * @param scheduleIndex Schedule index
@@ -675,12 +666,12 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
     }
 
     /**
-     * @notice Get rBTC periodic sale amount for caller's schedule
+     * @notice Get rBTC balance for caller's schedule
      * @param scheduleIndex Schedule index
-     * @return rBTC periodic sale amount
+     * @return rBTC balance
      */
-    function getMyScheduleSaleAmount(uint256 scheduleIndex) external view override returns (uint256) {
-        return getScheduleSaleAmount(msg.sender, scheduleIndex);
+    function getMyScheduleRbtcBalance(uint256 scheduleIndex) external view override returns (uint256) {
+        return getScheduleRbtcBalance(msg.sender, scheduleIndex);
     }
 
     /**
@@ -699,12 +690,12 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
     }
 
     /**
-     * @notice Get period for caller's schedule
+     * @notice Get rBTC periodic sale amount for caller's schedule
      * @param scheduleIndex Schedule index
-     * @return Period
+     * @return rBTC periodic sale amount
      */
-    function getMyScheduleSalePeriod(uint256 scheduleIndex) external view override returns (uint256) {
-        return getScheduleSalePeriod(msg.sender, scheduleIndex);
+    function getMyScheduleSaleAmount(uint256 scheduleIndex) external view override returns (uint256) {
+        return getScheduleSaleAmount(msg.sender, scheduleIndex);
     }
 
     /**
@@ -723,12 +714,12 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
     }
 
     /**
-     * @notice Get schedule ID for caller's schedule
+     * @notice Get period for caller's schedule
      * @param scheduleIndex Schedule index
-     * @return Schedule ID
+     * @return Period
      */
-    function getMyScheduleId(uint256 scheduleIndex) external view override returns (bytes32) {
-        return getScheduleId(msg.sender, scheduleIndex);
+    function getMyScheduleSalePeriod(uint256 scheduleIndex) external view override returns (uint256) {
+        return getScheduleSalePeriod(msg.sender, scheduleIndex);
     }
 
     /**
@@ -744,6 +735,34 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         returns (bytes32)
     {
         return s_userSchedules[user][scheduleIndex].scheduleId;
+    }
+
+    /**
+     * @notice Get schedule ID for caller's schedule
+     * @param scheduleIndex Schedule index
+     * @return Schedule ID
+     */
+    function getMyScheduleId(uint256 scheduleIndex) external view override returns (bytes32) {
+        return getScheduleId(msg.sender, scheduleIndex);
+    }
+
+    /**
+     * @notice Get whether a schedule is paused
+     * @param user User address
+     * @param scheduleIndex Schedule index
+     * @return Whether the schedule is paused
+     */
+    function getScheduleIsPaused(address user, uint256 scheduleIndex) public view override returns (bool) {
+        return s_userSchedules[user][scheduleIndex].paused;
+    }
+
+    /**
+     * @notice Get whether caller's schedule is paused
+     * @param scheduleIndex Schedule index
+     * @return Whether the schedule is paused
+     */
+    function getMyScheduleIsPaused(uint256 scheduleIndex) external view override returns (bool) {
+        return getScheduleIsPaused(msg.sender, scheduleIndex);
     }
 
     /**
