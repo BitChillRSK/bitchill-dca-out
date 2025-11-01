@@ -480,6 +480,30 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
     }
 
     /**
+     * @notice Set minimum sale amount
+     * @param minSaleAmount Minimum rBTC amount per sell
+     */
+    function setMinSaleAmount(uint256 minSaleAmount) external onlyOwner {
+        s_minSaleAmount = minSaleAmount;
+        emit DcaOutManager__MinSaleAmountSet(minSaleAmount);
+    }
+
+    /**
+     * @notice Set MoC commission rate
+     * @dev This should be kept in sync with MoC's actual commission rate.
+     *      MoC commission can be changed via governance. When it changes,
+     *      the owner should update this value accordingly.
+     *      The commission rate uses precision factor 1e18 (e.g., 15e14 = 0.15%, 2e15 = 0.2%).
+     *      To get the current MoC rate, check: MoCInrate.commissionRatesByTxType(MINT_DOC_FEES_RBTC)
+     *      where MINT_DOC_FEES_RBTC = 3.
+     * @param mocCommission MoC commission rate (using precision factor 1e18)
+     */
+    function setMocCommission(uint256 mocCommission) external onlyOwner {
+        s_mocCommission = mocCommission;
+        emit DcaOutManager__MocCommissionSet(mocCommission);
+    }
+
+    /**
      * @notice Grant swapper role to an address
      * @param swapper Address to grant swapper role
      */
@@ -549,7 +573,7 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
      * @param paused Whether the schedule is paused
      * @param scheduleId The schedule ID for validation
      */
-    function _validateScheduleNotPaused(address user, bool paused, bytes32 scheduleId) private view {
+    function _validateScheduleNotPaused(address user, bool paused, bytes32 scheduleId) private pure {
         if (paused) revert DcaOutManager__ScheduleIsPaused(user, scheduleId);
     }
 
@@ -564,7 +588,6 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         uint256 rbtcBalanceBefore = address(this).balance;
 
         // Calculate the rBTC amount that will be used to mint DOC (msg.value - MoC commission)
-        // uint256 btcToMintDoc = rbtcSaleAmount, PRECISION_FACTOR, PRECISION_FACTOR + s_mocCommission, Math.Rounding.Up);
         uint256 btcToMintDoc = Math.mulDiv(rbtcSaleAmount, PRECISION_FACTOR, PRECISION_FACTOR + s_mocCommission, Math.Rounding.Up);
         
         // Call MoC to mint DOC (payable function)
@@ -773,6 +796,14 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
      */
     function getMinSaleAmount() external view returns (uint256) {
         return s_minSaleAmount;
+    }
+
+    /**
+     * @notice Get MoC commission rate
+     * @return MoC commission rate (using precision factor 1e18, e.g., 15e14 = 0.15%)
+     */
+    function getMocCommission() external view returns (uint256) {
+        return s_mocCommission;
     }
 
     /*//////////////////////////////////////////////////////////////

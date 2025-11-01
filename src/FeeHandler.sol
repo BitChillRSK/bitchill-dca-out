@@ -35,6 +35,7 @@ abstract contract FeeHandler is IFeeHandler, Ownable {
      * @param feeSettings Initial fee configuration
      */
     constructor(address feeCollector, FeeSettings memory feeSettings) Ownable() {
+        if (feeCollector == address(0)) revert FeeHandler__FeeCollectorCannotBeZero();
         s_feeCollector = feeCollector;
         s_minFeeRate = feeSettings.minFeeRate;
         s_maxFeeRate = feeSettings.maxFeeRate;
@@ -116,6 +117,7 @@ abstract contract FeeHandler is IFeeHandler, Ownable {
      * @param feeCollector Address to receive fees
      */
     function setFeeCollectorAddress(address feeCollector) external override onlyOwner {
+        if (feeCollector == address(0)) revert FeeHandler__FeeCollectorCannotBeZero();
         s_feeCollector = feeCollector;
         emit FeeHandler__FeeCollectorAddressSet(feeCollector);
     }

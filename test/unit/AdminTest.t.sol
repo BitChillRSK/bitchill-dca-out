@@ -2,6 +2,7 @@
 pragma solidity 0.8.19;
 
 import {DcaOutTestBase} from "./DcaOutTestBase.t.sol";
+import {IDcaOutManager} from "../../src/interfaces/IDcaOutManager.sol";
 import "../Constants.sol";
 
 /**
@@ -51,45 +52,65 @@ contract OnlyOwnerTest is DcaOutTestBase {
     //////////////////////////////////////////////////////////////*/
 
     function testSetMinSalePeriod() public {
-        vm.startPrank(owner);
-        
+        vm.prank(owner);
         vm.expectEmit(true, true, true, true);
         emit DcaOutManager__MinSalePeriodSet(2 days);
         dcaOutManager.setMinSalePeriod(2 days);
-        
-        vm.stopPrank();
         assertEq(dcaOutManager.getMinSalePeriod(), 2 days, "Min sale period should be updated");
     }
 
     function testCannotSetMinSalePeriodIfNotOwner() public {
-        vm.startPrank(user);
-        
+        vm.prank(user);
         vm.expectRevert("Ownable: caller is not the owner");
         dcaOutManager.setMinSalePeriod(2 days);
-        
-        vm.stopPrank();
     }
 
     function testCannotSetMaxSchedulesIfNotOwner() public {
-        vm.startPrank(user);
-        
+        vm.prank(user);
         vm.expectRevert("Ownable: caller is not the owner");
         dcaOutManager.setMaxSchedulesPerUser(5);
-        
-        vm.stopPrank();
     }
 
     function testSetMaxSchedulesPerUser() public {
         // Test that non-owner cannot call this function
-        vm.startPrank(user);
+        vm.prank(user);
         vm.expectRevert("Ownable: caller is not the owner");
         dcaOutManager.setMaxSchedulesPerUser(5);
-        vm.stopPrank();
 
         // Test that owner can call this function
-        vm.startPrank(owner);
+        vm.prank(owner);
         dcaOutManager.setMaxSchedulesPerUser(5);
         assertEq(dcaOutManager.getMaxSchedulesPerUser(), 5, "Max schedules per user should be updated");
-        vm.stopPrank();
+    }
+
+    function testSetMinSaleAmount() public {
+        vm.prank(owner);
+        uint256 newMinSaleAmount = 0.002 ether;
+        vm.expectEmit(true, true, true, true);
+        emit DcaOutManager__MinSaleAmountSet(newMinSaleAmount);
+        dcaOutManager.setMinSaleAmount(newMinSaleAmount);
+        
+        assertEq(dcaOutManager.getMinSaleAmount(), newMinSaleAmount, "Min sale amount should be updated");
+    }
+
+    function testCannotSetMinSaleAmountIfNotOwner() public {
+        vm.prank(user);
+        vm.expectRevert("Ownable: caller is not the owner");
+        dcaOutManager.setMinSaleAmount(0.002 ether);
+    }
+
+    function testSetMocCommission() public {
+        vm.prank(owner);
+        uint256 newCommission = 2e15; // 0.2%
+        vm.expectEmit(true, true, true, true);
+        emit DcaOutManager__MocCommissionSet(newCommission);
+        dcaOutManager.setMocCommission(newCommission);
+        assertEq(dcaOutManager.getMocCommission(), newCommission, "MoC commission should be updated");
+    }
+ 
+    function testCannotSetMocCommissionIfNotOwner() public {
+        vm.prank(user);
+        vm.expectRevert("Ownable: caller is not the owner");
+        dcaOutManager.setMocCommission(2e15);
     }
 }

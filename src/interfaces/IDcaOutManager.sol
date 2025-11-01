@@ -79,6 +79,8 @@ interface IDcaOutManager {
     event DcaOutManager__SwapperSet(address indexed swapper);
     event DcaOutManager__MinSalePeriodSet(uint256 indexed minSalePeriod);
     event DcaOutManager__MaxSchedulesPerUserSet(uint256 indexed maxSchedules);
+    event DcaOutManager__MinSaleAmountSet(uint256 indexed minSaleAmount);
+    event DcaOutManager__MocCommissionSet(uint256 indexed mocCommission);
     event DcaOutManager__SaleAmountSet(address indexed user, bytes32 indexed scheduleId, uint256 indexed rbtcSaleAmount);
     event DcaOutManager__SalePeriodSet(address indexed user, bytes32 indexed scheduleId, uint256 indexed salePeriod);
     event DcaOutManager__SchedulePaused(address indexed user, bytes32 indexed scheduleId);
@@ -139,6 +141,8 @@ interface IDcaOutManager {
     // Owner functions
     function setMinSalePeriod(uint256 minPeriod) external;
     function setMaxSchedulesPerUser(uint256 maxSchedules) external;
+    function setMinSaleAmount(uint256 minSaleAmount) external;
+    function setMocCommission(uint256 mocCommission) external;
 
     /*//////////////////////////////////////////////////////////////
                                 GETTERS
@@ -164,5 +168,6 @@ interface IDcaOutManager {
     function getMinSalePeriod() external view returns (uint256);
     function getMaxSchedulesPerUser() external view returns (uint256);
     function getMinSaleAmount() external view returns (uint256);
+    function getMocCommission() external view returns (uint256);
 }
 
