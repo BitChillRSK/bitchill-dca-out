@@ -65,7 +65,12 @@ contract DcaOutTestBase is Test {
         uint256 rbtcSaleAmount,
         uint256 salePeriod
     );
-    event DcaOutManager__ScheduleDeleted(address indexed user, uint256 indexed scheduleIndex, bytes32 indexed scheduleId);
+    event DcaOutManager__ScheduleDeleted(
+        address indexed user,
+        uint256 indexed scheduleIndex,
+        bytes32 indexed scheduleId,
+        uint256 refundedAmount
+    );
     event DcaOutManager__RbtcDeposited(
         address indexed user,
         uint256 indexed scheduleIndex,

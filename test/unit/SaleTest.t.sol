@@ -76,6 +76,19 @@ contract SaleTest is DcaOutTestBase {
         dcaOutManager.updateDcaOutSchedule(0, scheduleId, tooHighAmount, SALE_PERIOD);
     }
 
+    function testLastSaleTimestampConsistencyWhenSchedulePausedAndResumed() public {
+        bytes32 scheduleId = createDcaOutSchedule(user, SALE_AMOUNT, SALE_PERIOD, DEPOSIT_AMOUNT);
+        executeSale(user, 0, scheduleId);
+        vm.prank(user);
+        dcaOutManager.pauseSchedule(0, scheduleId); // Pausing is really just to make the test realistic, but has no effect
+        vm.warp(block.timestamp + 2* SALE_PERIOD); // Two periods pass without selling
+        vm.prank(user);
+        dcaOutManager.unpauseSchedule(0, scheduleId);
+        executeSale(user, 0, scheduleId);
+        IDcaOutManager.DcaOutSchedule memory schedule = dcaOutManager.getSchedule(user, 0);
+        assertEq(schedule.lastSaleTimestamp, block.timestamp);
+    }
+
     /*//////////////////////////////////////////////////////////////
                             BATCH SALE TESTS
     //////////////////////////////////////////////////////////////*/
