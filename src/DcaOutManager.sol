@@ -276,7 +276,7 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
             if (!success) revert DcaOutManager__RbtcWithdrawalFailed(msg.sender, schedule.rbtcBalance);
         }
 
-        emit DcaOutManager__ScheduleDeleted(msg.sender, scheduleIndex, scheduleId);
+        emit DcaOutManager__ScheduleDeleted(msg.sender, scheduleIndex, scheduleId, schedule.rbtcBalance);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -354,18 +354,11 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         _validateScheduleIndexAndId(user, scheduleIndex, scheduleId);
         DcaOutSchedule storage schedule = s_userSchedules[user][scheduleIndex];
         _validateScheduleNotPaused(user, schedule.paused, scheduleId);
-        uint256 lastSaleTimestamp = schedule.lastSaleTimestamp;
-        uint256 salePeriod = schedule.salePeriod;
-        _validatePeriodElapsed(lastSaleTimestamp, salePeriod);
+        schedule.lastSaleTimestamp = _validatePeriodElapsed(schedule.lastSaleTimestamp, schedule.salePeriod);
         uint256 rbtcToSpend = schedule.rbtcSaleAmount;
         uint256 docReceived = _mintDoc(rbtcToSpend);
 
         schedule.rbtcBalance -= rbtcToSpend;
-        unchecked {
-            schedule.lastSaleTimestamp = lastSaleTimestamp == 0
-                ? block.timestamp
-                : lastSaleTimestamp + salePeriod;
-        }
 
         uint256 feeAmount = _calculateFee(docReceived);
         s_userDocBalances[user] += docReceived - feeAmount;
@@ -427,17 +420,12 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         _validateScheduleIndexAndId(user, scheduleIndex, scheduleId);
         DcaOutSchedule storage schedule = s_userSchedules[user][scheduleIndex];
         _validateScheduleNotPaused(user, schedule.paused, scheduleId);
-        _validatePeriodElapsed(schedule.lastSaleTimestamp, schedule.salePeriod);
+        schedule.lastSaleTimestamp = _validatePeriodElapsed(schedule.lastSaleTimestamp, schedule.salePeriod);
 
         saleAmount = schedule.rbtcSaleAmount;
 
         uint256 docReceived = (totalDocReceived * saleAmount) / totalRbtcToSpend;
         schedule.rbtcBalance -= saleAmount;
-        unchecked {
-            schedule.lastSaleTimestamp = schedule.lastSaleTimestamp == 0
-                ? block.timestamp
-                : schedule.lastSaleTimestamp + schedule.salePeriod;
-        }
 
         fee = _calculateFee(docReceived);
         s_userDocBalances[user] += docReceived - fee;
@@ -548,10 +536,18 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
      * @notice Validate that the period has elapsed since the last sale
      * @param lastSaleTimestamp The timestamp of the last sale
      * @param salePeriod The sale period
+     * @return currentSaleTimestamp The timestamp of the current sale
      */
-    function _validatePeriodElapsed(uint256 lastSaleTimestamp, uint256 salePeriod) private view {
+    function _validatePeriodElapsed(uint256 lastSaleTimestamp, uint256 salePeriod) private view returns (uint256 currentSaleTimestamp) {
         if (lastSaleTimestamp != 0 && block.timestamp < lastSaleTimestamp + salePeriod) {
             revert DcaOutManager__SalePeriodNotElapsed(lastSaleTimestamp, lastSaleTimestamp + salePeriod, block.timestamp);
+        }
+        // Calculate the number of periods elapsed since the last sale so lastSaleTimestamp is consistent even if the schedule is paused and resumed
+        uint256 periodsElapsed = (block.timestamp - lastSaleTimestamp) / salePeriod;
+        unchecked {
+            currentSaleTimestamp = lastSaleTimestamp == 0
+                ? block.timestamp
+                : lastSaleTimestamp + periodsElapsed * salePeriod;
         }
     }
 

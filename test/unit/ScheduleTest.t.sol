@@ -159,7 +159,7 @@ contract ScheduleTest is DcaOutTestBase {
 
         uint256 balanceBefore = user.balance;
         vm.expectEmit(true, true, true, true);
-        emit DcaOutManager__ScheduleDeleted(user, 0, schedule.scheduleId);
+        emit DcaOutManager__ScheduleDeleted(user, 0, schedule.scheduleId, DEPOSIT_AMOUNT);
         
         vm.prank(user);
         dcaOutManager.deleteDcaOutSchedule(0, schedule.scheduleId);
