@@ -4,6 +4,7 @@ pragma solidity 0.8.19;
 import {DcaOutTestBase} from "./DcaOutTestBase.t.sol";
 import {IDcaOutManager} from "../../src/interfaces/IDcaOutManager.sol";
 import "../Constants.sol";
+import {console2} from "forge-std/console2.sol";
 
 /**
  * @title SaleTest
@@ -76,17 +77,23 @@ contract SaleTest is DcaOutTestBase {
         dcaOutManager.updateDcaOutSchedule(0, scheduleId, tooHighAmount, SALE_PERIOD);
     }
 
-    function testLastSaleTimestampConsistencyWhenSchedulePausedAndResumed() public {
+    function testLastSaleTimestampConsistencyWhenSchedulePausedAndResumed(uint256 timePaused) public {
+        if (timePaused < SALE_PERIOD) return; // Avoid known revert in `_validatePeriodElapsed()`
+        if (timePaused > 100 * 52 weeks) return; // Avoid overflows
         bytes32 scheduleId = createDcaOutSchedule(user, SALE_AMOUNT, SALE_PERIOD, DEPOSIT_AMOUNT);
         executeSale(user, 0, scheduleId);
         vm.prank(user);
         dcaOutManager.pauseSchedule(0, scheduleId); // Pausing is really just to make the test realistic, but has no effect
-        vm.warp(block.timestamp + 2* SALE_PERIOD); // Two periods pass without selling
+        uint256 firstSaleTimestamp = block.timestamp;
+        vm.warp(block.timestamp + timePaused); // Schedule is paused for some time 
         vm.prank(user);
         dcaOutManager.unpauseSchedule(0, scheduleId);
         executeSale(user, 0, scheduleId);
         IDcaOutManager.DcaOutSchedule memory schedule = dcaOutManager.getSchedule(user, 0);
-        assertEq(schedule.lastSaleTimestamp, block.timestamp);
+        assertLe(schedule.lastSaleTimestamp, block.timestamp);
+        assertGt(schedule.lastSaleTimestamp, block.timestamp - SALE_PERIOD);
+        uint256 periodsElapsed = (block.timestamp - firstSaleTimestamp) / SALE_PERIOD;
+        assertEq(schedule.lastSaleTimestamp, firstSaleTimestamp + periodsElapsed * SALE_PERIOD);
     }
 
     /*//////////////////////////////////////////////////////////////
