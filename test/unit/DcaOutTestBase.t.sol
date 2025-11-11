@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
-import {Test, console2} from "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 import {DcaOutManager} from "../../src/DcaOutManager.sol";
 import {IDcaOutManager} from "../../src/interfaces/IDcaOutManager.sol";
 import {IFeeHandler} from "../../src/interfaces/IFeeHandler.sol";
@@ -153,18 +153,20 @@ contract DcaOutTestBase is Test {
             feePurchaseLowerBound: FEE_PURCHASE_LOWER_BOUND,
             feePurchaseUpperBound: FEE_PURCHASE_UPPER_BOUND
         });
+
+        IDcaOutManager.ProtocolConfig memory protocolConfig = IDcaOutManager.ProtocolConfig({
+            docTokenAddress: config.docTokenAddress,
+            mocProxyAddress: config.mocProxyAddress,
+            feeCollector: config.feeCollector,
+            feeSettings: feeSettings,
+            minSalePeriod: MIN_SALE_PERIOD,
+            maxSchedulesPerUser: MAX_SCHEDULES_PER_USER,
+            minSaleAmount: MIN_SALE_AMOUNT,
+            mocCommission: MOC_COMMISSION,
+            swapper: swapper
+        });
         
-        testHelper = new DcaOutManagerTestHelper(
-            config.docTokenAddress,
-            config.mocProxyAddress,
-            config.feeCollector,
-            feeSettings,
-            MIN_SALE_PERIOD,
-            MAX_SCHEDULES_PER_USER,
-            MIN_SALE_AMOUNT,
-            MOC_COMMISSION,
-            swapper
-        );
+        testHelper = new DcaOutManagerTestHelper(protocolConfig);
 
         // Roles and ownership are handled entirely by the deployment script
         // No additional role management needed in test setup

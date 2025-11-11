@@ -4,7 +4,6 @@ pragma solidity 0.8.19;
 import {IDcaOutManager} from "./interfaces/IDcaOutManager.sol";
 import {IMocProxy} from "./interfaces/IMocProxy.sol";
 import {FeeHandler} from "./FeeHandler.sol";
-import {IFeeHandler} from "./interfaces/IFeeHandler.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
@@ -60,33 +59,18 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @param docTokenAddress DOC token address
-     * @param mocProxyAddress MoC proxy address
-     * @param feeCollector Address to receive fees
-     * @param feeSettings Fee configuration
-     * @param minSalePeriod Minimum time between sells
-     * @param maxSchedulesPerUser Maximum schedules per user
-     * @param minSaleAmount Minimum rBTC amount per sell
+     * @param config Protocol configuration (addresses, fee settings, and limits)
      */
-    constructor(
-        address docTokenAddress,
-        address mocProxyAddress,
-        address feeCollector,
-        IFeeHandler.FeeSettings memory feeSettings,
-        uint256 minSalePeriod,
-        uint256 maxSchedulesPerUser,
-        uint256 minSaleAmount,
-        uint256 mocCommission,
-        address swapper
-    ) FeeHandler(feeCollector, feeSettings) {
-        i_docToken = IERC20(docTokenAddress);
-        i_mocProxy = IMocProxy(mocProxyAddress);
-        s_minSalePeriod = minSalePeriod;
-        s_maxSchedulesPerUser = maxSchedulesPerUser;
-        s_minSaleAmount = minSaleAmount;
-        s_mocCommission = mocCommission;
+    constructor(IDcaOutManager.ProtocolConfig memory config) FeeHandler(config.feeCollector, config.feeSettings)
+    {
+        i_docToken = IERC20(config.docTokenAddress);
+        i_mocProxy = IMocProxy(config.mocProxyAddress);
+        s_minSalePeriod = config.minSalePeriod;
+        s_maxSchedulesPerUser = config.maxSchedulesPerUser;
+        s_minSaleAmount = config.minSaleAmount;
+        s_mocCommission = config.mocCommission;
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        _grantRole(SWAPPER_ROLE, swapper);
+        _grantRole(SWAPPER_ROLE, config.swapper);
     }
 
     /*//////////////////////////////////////////////////////////////
