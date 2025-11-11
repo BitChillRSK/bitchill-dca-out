@@ -6,6 +6,7 @@ import {Script} from "forge-std/Script.sol";
 import {console2} from "forge-std/Test.sol";
 import {DeployDcaOut} from "./DeployDcaOut.s.sol";
 import {DcaOutManager} from "../src/DcaOutManager.sol";
+import "./Constants.sol";
 
 /**
  * @title DeployAndSeedSchedules
@@ -26,10 +27,10 @@ contract DeployAndSeedSchedules is Script {
 
         // Get private keys from environment variables
         // Note: Variables must be exported in shell or sourced from .env file
-        // Example: export PRIVATE_KEY=0x... && export PRIVATE_KEY2=0x...
+        // Example: export TESTNET_PKEY=0x... && export TESTNET_PKEY2=0x...
         // Or: source .env (if .env file exports the variables)
-        uint256 deployerKey = vm.envUint("PRIVATE_KEY");
-        uint256 secondKey = vm.envUint("PRIVATE_KEY2");
+        uint256 deployerKey = vm.envUint("TESTNET_PKEY");
+        uint256 secondKey = vm.envUint("TESTNET_PKEY2");
 
         // Deploy manager using existing deployment flow
         DeployDcaOut deployScript = new DeployDcaOut();

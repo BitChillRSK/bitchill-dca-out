@@ -98,6 +98,61 @@ forge test --gas-report
 
 ### Deployment
 
+#### 🔐 Secure Wallet Management (Recommended)
+
+**Using Keystores (Recommended for Production):**
+
+Keystores encrypt your private keys and are much more secure than plain text private keys in `.env` files.
+
+1. **Import your private key into a keystore:**
+   ```bash
+   # Interactive password prompt (recommended)
+   cast wallet import --private-key <RAW_PRIVATE_KEY> <ACCOUNT_NAME>
+   # Enter a strong password when prompted
+   ```
+
+2. **Use keystore in deployment commands:**
+   ```bash
+   forge script script/DeployDcaOut.s.sol:DeployDcaOut \
+     --rpc-url $TESTNET_RPC_URL \
+     --account dev_wallet \
+     --broadcast \
+     --verify \
+     --verifier blockscout \
+     --verifier-url $BLOCKSCOUT_API_URL \
+     --legacy
+
+    # Enter password when prompted
+   ```
+
+**Using Hardware Wallets (Most Secure):**
+
+For maximum security, use a Ledger or Trezor hardware wallet:
+
+```bash
+# With Ledger
+forge script script/DeployDcaOut.s.sol:DeployDcaOut \
+  --rpc-url $TESTNET_RPC_URL \
+  --ledger \
+  --broadcast \
+  --verify \
+  --verifier blockscout \
+  --verifier-url $BLOCKSCOUT_API_URL \
+  --legacy
+
+# With Trezor
+forge script script/DeployDcaOut.s.sol:DeployDcaOut \
+  --rpc-url $TESTNET_RPC_URL \
+  --trezor \
+  --broadcast \
+  --verify \
+  --verifier blockscout \
+  --verifier-url $BLOCKSCOUT_API_URL \
+  --legacy
+```
+
+#### Deployment Commands
+
 ```bash
 # Deploy to local Anvil
 forge script script/DeployDcaOut.s.sol:DeployDcaOut --rpc-url http://localhost:8545 --broadcast
@@ -106,7 +161,7 @@ forge script script/DeployDcaOut.s.sol:DeployDcaOut --rpc-url http://localhost:8
 REAL_DEPLOYMENT=true \
 forge script script/DeployDcaOut.s.sol \
   --rpc-url $TESTNET_RPC_URL \
-  --private-key $PRIVATE_KEY \
+  --account dev_wallet \
   --broadcast \
   --verify \
   --verifier blockscout \
@@ -117,7 +172,7 @@ forge script script/DeployDcaOut.s.sol \
 REAL_DEPLOYMENT=true \
 forge script script/DeployDcaOut.s.sol \
   --rpc-url $MAINNET_RPC_URL \
-  --private-key $PRIVATE_KEY \
+  --account dev_wallet \
   --broadcast \
   --verify \
   --verifier blockscout \
@@ -125,19 +180,19 @@ forge script script/DeployDcaOut.s.sol \
   --legacy
 
 # Deploy to Rootstock Testnet and seed test schedules
-# Note: Requires both PRIVATE_KEY and PRIVATE_KEY2 to be set in .env
+# ⚠️ Quick testing method - uses plain text private keys from .env
 # Both accounts must be funded with rBTC for schedule creation
 REAL_DEPLOYMENT=true \
-forge script script/DeployAndSeedSchedules.s.sol:DeployAndSeedSchedules \
+forge script script/DeployAndSeedSchedules.s.sol \
   --rpc-url $TESTNET_RPC_URL \
-  --private-key $PRIVATE_KEY \
+  --account dev_wallet \
   --broadcast \
   --verify \
   --verifier blockscout \
   --verifier-url $BLOCKSCOUT_API_URL \
   --legacy
 
-# Reattempt verificatin if failed
+# Reattempt verification if failed
 forge verify-contract --verifier blockscout --verifier-url $BLOCKSCOUT_API_URL <ADDRESS> src/DcaOutManager.sol:DcaOutManager --chain <CHAIN> 
 ```
  
