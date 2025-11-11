@@ -128,7 +128,7 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         // Store schedule
         schedules.push(newSchedule);
 
-        emit DcaOutManager__ScheduleCreated(msg.sender, scheduleIndex, scheduleId, msg.value, rbtcSaleAmount, salePeriod);
+        emit DcaOutManager__ScheduleCreated(msg.sender, rbtcSaleAmount, salePeriod, scheduleIndex, scheduleId, msg.value);
     }
 
     /**
@@ -164,8 +164,8 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         }
 
         emit DcaOutManager__ScheduleUpdated(
-            msg.sender, scheduleIndex, scheduleId, 
-            schedule.rbtcBalance, schedule.rbtcSaleAmount, schedule.salePeriod
+            msg.sender, schedule.rbtcSaleAmount, schedule.salePeriod,
+            scheduleIndex, scheduleId, schedule.rbtcBalance
         );
     }
 
@@ -260,7 +260,7 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
             if (!success) revert DcaOutManager__RbtcWithdrawalFailed(msg.sender, schedule.rbtcBalance);
         }
 
-        emit DcaOutManager__ScheduleDeleted(msg.sender, scheduleIndex, scheduleId, schedule.rbtcBalance);
+        emit DcaOutManager__ScheduleDeleted(msg.sender, schedule.rbtcBalance, scheduleId, scheduleIndex);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -285,7 +285,7 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         // Update balance
         schedule.rbtcBalance += msg.value;
 
-        emit DcaOutManager__RbtcDeposited(msg.sender, scheduleIndex, scheduleId, msg.value);
+        emit DcaOutManager__RbtcDeposited(msg.sender, msg.value, scheduleId, scheduleIndex);
     }
 
     /**
@@ -305,7 +305,7 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         schedule.rbtcBalance -= amount;
         (bool success,) = msg.sender.call{value: amount}("");
         if (!success) revert DcaOutManager__RbtcWithdrawalFailed(msg.sender, amount);
-        emit DcaOutManager__RbtcWithdrawn(msg.sender, scheduleIndex, scheduleId, amount);
+        emit DcaOutManager__RbtcWithdrawn(msg.sender, amount, scheduleId, scheduleIndex);
     }
 
     /**

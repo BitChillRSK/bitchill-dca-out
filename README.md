@@ -103,6 +103,7 @@ forge test --gas-report
 forge script script/DeployDcaOut.s.sol:DeployDcaOut --rpc-url http://localhost:8545 --broadcast
 
 # Deploy to Rootstock Testnet
+REAL_DEPLOYMENT=true \
 forge script script/DeployDcaOut.s.sol \
   --rpc-url $TESTNET_RPC_URL \
   --private-key $PRIVATE_KEY \
@@ -113,6 +114,7 @@ forge script script/DeployDcaOut.s.sol \
   --legacy
 
 # Deploy to Rootstock Mainnet
+REAL_DEPLOYMENT=true \
 forge script script/DeployDcaOut.s.sol \
   --rpc-url $MAINNET_RPC_URL \
   --private-key $PRIVATE_KEY \

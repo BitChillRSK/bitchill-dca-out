@@ -97,7 +97,7 @@ contract ScheduleTest is DcaOutTestBase {
         
         // Check event emission
         vm.expectEmit(true, true, true, true);
-        emit DcaOutManager__RbtcWithdrawn(user, 0, schedule.scheduleId, DEPOSIT_AMOUNT / 2);
+        emit DcaOutManager__RbtcWithdrawn(user, DEPOSIT_AMOUNT / 2, schedule.scheduleId, 0);
         
         vm.prank(user);
         dcaOutManager.withdrawRbtc(0, schedule.scheduleId, DEPOSIT_AMOUNT / 2);
@@ -114,7 +114,7 @@ contract ScheduleTest is DcaOutTestBase {
         uint256 balanceBefore = user.balance;
         
         vm.expectEmit(true, true, true, true);
-        emit DcaOutManager__RbtcWithdrawn(user, 0, schedule.scheduleId, DEPOSIT_AMOUNT);
+        emit DcaOutManager__RbtcWithdrawn(user, DEPOSIT_AMOUNT, schedule.scheduleId, 0);
         vm.prank(user);
         dcaOutManager.withdrawRbtc(0, schedule.scheduleId, DEPOSIT_AMOUNT + 1); // Withdraw more than the schedule balance
         uint256 balanceAfter = user.balance;
@@ -129,7 +129,7 @@ contract ScheduleTest is DcaOutTestBase {
 
         uint256 balanceBefore = user.balance;
         vm.expectEmit(true, true, true, true);
-        emit DcaOutManager__RbtcWithdrawn(user, 0, schedule.scheduleId, DEPOSIT_AMOUNT);
+        emit DcaOutManager__RbtcWithdrawn(user, DEPOSIT_AMOUNT, schedule.scheduleId, 0);
         
         vm.prank(user);
         dcaOutManager.withdrawRbtc(0, schedule.scheduleId, 0); // Withdraw all rBTC by setting amount to 0
@@ -159,7 +159,7 @@ contract ScheduleTest is DcaOutTestBase {
 
         uint256 balanceBefore = user.balance;
         vm.expectEmit(true, true, true, true);
-        emit DcaOutManager__ScheduleDeleted(user, 0, schedule.scheduleId, DEPOSIT_AMOUNT);
+        emit DcaOutManager__ScheduleDeleted(user, DEPOSIT_AMOUNT, schedule.scheduleId, 0);
         
         vm.prank(user);
         dcaOutManager.deleteDcaOutSchedule(0, schedule.scheduleId);
@@ -215,7 +215,7 @@ contract ScheduleTest is DcaOutTestBase {
         uint256 newSalePeriod = 2 days;
         
         vm.expectEmit(true, true, true, true);
-        emit DcaOutManager__ScheduleUpdated(user, 0, schedule.scheduleId, DEPOSIT_AMOUNT, newSaleAmount, newSalePeriod);
+        emit DcaOutManager__ScheduleUpdated(user, newSaleAmount, newSalePeriod, 0, schedule.scheduleId, DEPOSIT_AMOUNT);
         vm.prank(user);
         dcaOutManager.updateDcaOutSchedule(0, schedule.scheduleId, newSaleAmount, newSalePeriod);
         

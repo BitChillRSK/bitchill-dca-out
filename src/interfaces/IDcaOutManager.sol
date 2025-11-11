@@ -40,34 +40,34 @@ interface IDcaOutManager {
 
     event DcaOutManager__ScheduleCreated(
         address indexed user,
-        uint256 indexed scheduleIndex,
-        bytes32 indexed scheduleId,
-        uint256 rbtcDepositAmount,     
-        uint256 rbtcSaleAmount,
-        uint256 salePeriod
+        uint256 indexed rbtcSaleAmount,
+        uint256 indexed salePeriod,
+        uint256 scheduleIndex,
+        bytes32 scheduleId,
+        uint256 rbtcDepositAmount
     );
 
     event DcaOutManager__ScheduleUpdated(
         address indexed user,
-        uint256 indexed scheduleIndex,
-        bytes32 indexed scheduleId,
-        uint256 rbtcBalance,
-        uint256 rbtcSaleAmount,
-        uint256 salePeriod
+        uint256 indexed rbtcSaleAmount,
+        uint256 indexed salePeriod,
+        uint256 scheduleIndex,
+        bytes32 scheduleId,
+        uint256 rbtcBalance
     );
 
     event DcaOutManager__ScheduleDeleted(
         address indexed user,
-        uint256 indexed scheduleIndex,
+        uint256 indexed refundedAmount,
         bytes32 indexed scheduleId,
-        uint256 refundedAmount
+        uint256 scheduleIndex
     );
 
     event DcaOutManager__RbtcDeposited(
         address indexed user,
-        uint256 indexed scheduleIndex,
+        uint256 indexed amount,
         bytes32 indexed scheduleId,
-        uint256 amount
+        uint256 scheduleIndex
     );
 
     event DcaOutManager__RbtcSold(
@@ -89,9 +89,9 @@ interface IDcaOutManager {
 
     event DcaOutManager__RbtcWithdrawn(
         address indexed user,
-        uint256 indexed scheduleIndex,
+        uint256 indexed amount,
         bytes32 indexed scheduleId,
-        uint256 amount
+        uint256 scheduleIndex
     );
 
     event DcaOutManager__SwapperSet(address indexed swapper);
