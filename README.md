@@ -124,6 +124,19 @@ forge script script/DeployDcaOut.s.sol \
   --verifier-url $BLOCKSCOUT_API_URL \
   --legacy
 
+# Deploy to Rootstock Testnet and seed test schedules
+# Note: Requires both PRIVATE_KEY and PRIVATE_KEY2 to be set in .env
+# Both accounts must be funded with rBTC for schedule creation
+REAL_DEPLOYMENT=true \
+forge script script/DeployAndSeedSchedules.s.sol:DeployAndSeedSchedules \
+  --rpc-url $TESTNET_RPC_URL \
+  --private-key $PRIVATE_KEY \
+  --broadcast \
+  --verify \
+  --verifier blockscout \
+  --verifier-url $BLOCKSCOUT_API_URL \
+  --legacy
+
 # Reattempt verificatin if failed
 forge verify-contract --verifier blockscout --verifier-url $BLOCKSCOUT_API_URL <ADDRESS> src/DcaOutManager.sol:DcaOutManager --chain <CHAIN> 
 ```
