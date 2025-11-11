@@ -5,6 +5,7 @@ import {DeployBase} from "./DeployBase.s.sol";
 import {DcaOutManager} from "../src/DcaOutManager.sol";
 import {HelperConfig} from "./HelperConfig.s.sol";
 import {IFeeHandler} from "../src/interfaces/IFeeHandler.sol";
+import {IDcaOutManager} from "../src/interfaces/IDcaOutManager.sol";
 import {console2} from "forge-std/Test.sol";
 import "./Constants.sol";
 
@@ -65,18 +66,20 @@ contract DeployDcaOut is DeployBase {
             console2.log("Using PRODUCTION parameters for", environment == Environment.MAINNET ? "mainnet" : environment == Environment.LOCAL ? "local" : "fork", "deployment");
         }
 
+        IDcaOutManager.ProtocolConfig memory protocolConfig = IDcaOutManager.ProtocolConfig({
+            docTokenAddress: config.docTokenAddress,
+            mocProxyAddress: config.mocProxyAddress,
+            feeCollector: config.feeCollector,
+            feeSettings: feeSettings,
+            minSalePeriod: minSalePeriod,
+            maxSchedulesPerUser: MAX_SCHEDULES_PER_USER,
+            minSaleAmount: minSaleAmount,
+            mocCommission: MOC_COMMISSION,
+            swapper: config.swapper
+        });
+
         // Deploy DcaOutManager
-        DcaOutManager dcaOutManager = new DcaOutManager(
-            config.docTokenAddress,
-            config.mocProxyAddress,
-            config.feeCollector,
-            feeSettings,
-            minSalePeriod,
-            MAX_SCHEDULES_PER_USER,
-            minSaleAmount,
-            MOC_COMMISSION,
-            config.swapper
-        );
+        DcaOutManager dcaOutManager = new DcaOutManager(protocolConfig);
 
         console2.log("DcaOutManager deployed at:", address(dcaOutManager));
 

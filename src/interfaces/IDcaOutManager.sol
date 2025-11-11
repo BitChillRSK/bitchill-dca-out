@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
+import {IFeeHandler} from "./IFeeHandler.sol";
+
 /**
  * @title IDcaOutManager
  * @author BitChill team: Antonio Rodríguez-Ynyesto
@@ -18,6 +20,18 @@ interface IDcaOutManager {
         uint256 lastSaleTimestamp; // Timestamp of last execution
         bytes32 scheduleId;        // Unique identifier of the schedule
         bool paused;               // Whether the schedule is paused
+    }
+
+    struct ProtocolConfig {
+        address docTokenAddress;
+        address mocProxyAddress;
+        address feeCollector;
+        IFeeHandler.FeeSettings feeSettings;
+        uint256 minSalePeriod;
+        uint256 maxSchedulesPerUser;
+        uint256 minSaleAmount;
+        uint256 mocCommission;
+        address swapper;
     }
 
     /*//////////////////////////////////////////////////////////////

@@ -2,7 +2,7 @@
 pragma solidity 0.8.19;
 
 import {DcaOutManager} from "../../src/DcaOutManager.sol";
-import {IFeeHandler} from "../../src/interfaces/IFeeHandler.sol";
+import {IDcaOutManager} from "../../src/interfaces/IDcaOutManager.sol";
 
 /**
  * @title DcaOutManagerTestHelper
@@ -10,27 +10,7 @@ import {IFeeHandler} from "../../src/interfaces/IFeeHandler.sol";
  * @notice Test helper contract to expose internal functions for testing
  */
 contract DcaOutManagerTestHelper is DcaOutManager {
-    constructor(
-        address docTokenAddress,
-        address mocProxyAddress,
-        address feeCollector,
-        IFeeHandler.FeeSettings memory feeSettings,
-        uint256 minSalePeriod,
-        uint256 maxSchedulesPerUser,
-        uint256 minSaleAmount,
-        uint256 mocCommission,
-        address swapper
-    ) DcaOutManager(
-            docTokenAddress,
-            mocProxyAddress,
-            feeCollector,
-            feeSettings,
-            minSalePeriod,
-            maxSchedulesPerUser,
-            minSaleAmount,
-            mocCommission,
-            swapper
-        ) {}
+    constructor(IDcaOutManager.ProtocolConfig memory config) DcaOutManager(config) {}
 
     // Expose internal functions for testing
     function calculateFee(uint256 docAmount) external view returns (uint256) {

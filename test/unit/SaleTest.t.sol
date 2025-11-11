@@ -4,7 +4,6 @@ pragma solidity 0.8.19;
 import {DcaOutTestBase} from "./DcaOutTestBase.t.sol";
 import {IDcaOutManager} from "../../src/interfaces/IDcaOutManager.sol";
 import "../Constants.sol";
-import {console2} from "forge-std/console2.sol";
 
 /**
  * @title SaleTest
