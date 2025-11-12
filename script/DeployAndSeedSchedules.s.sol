@@ -42,8 +42,8 @@ contract DeployAndSeedSchedules is Script {
             manager,
             deployerKey,
             [
-                ScheduleConfig({deposit: 0.0002 ether, saleAmount: 0.00005 ether, salePeriod: 10}),
-                ScheduleConfig({deposit: 0.0003 ether, saleAmount: 0.000075 ether, salePeriod: 40})
+                ScheduleConfig({deposit: 0.0002 ether, saleAmount: 0.0001 ether, salePeriod: 10}),
+                ScheduleConfig({deposit: 0.0003 ether, saleAmount: 0.00015 ether, salePeriod: 40})
             ]
         );
 
@@ -51,8 +51,8 @@ contract DeployAndSeedSchedules is Script {
             manager,
             secondKey,
             [
-                ScheduleConfig({deposit: 0.00025 ether, saleAmount: 0.0000625 ether, salePeriod: 20}),
-                ScheduleConfig({deposit: 0.0004 ether, saleAmount: 0.00001 ether, salePeriod: 30})
+                ScheduleConfig({deposit: 0.00025 ether, saleAmount: 0.000125 ether, salePeriod: 20}),
+                ScheduleConfig({deposit: 0.0004 ether, saleAmount: 0.0002 ether, salePeriod: 30})
             ]
         );
 

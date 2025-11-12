@@ -92,7 +92,7 @@ contract DeployDcaOut is DeployBase {
         console2.log("DEFAULT_ADMIN_ROLE granted to owner for role management");
         
         // Revoke DEFAULT_ADMIN_ROLE from deployer for maximum security
-        dcaOutManager.revokeRole(dcaOutManager.DEFAULT_ADMIN_ROLE(), msg.sender);
+        dcaOutManager.revokeRole(dcaOutManager.DEFAULT_ADMIN_ROLE(), tx.origin);
         console2.log("DEFAULT_ADMIN_ROLE revoked from deployer for security");
         
         console2.log("Ownership transferred successfully");
