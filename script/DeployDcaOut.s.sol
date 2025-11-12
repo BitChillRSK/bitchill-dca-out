@@ -87,13 +87,15 @@ contract DeployDcaOut is DeployBase {
         console2.log("Live network deployment - transferring ownership to owner:", config.owner);
         dcaOutManager.transferOwnership(config.owner);
         
-        // Grant DEFAULT_ADMIN_ROLE to owner for role management
-        dcaOutManager.grantRole(dcaOutManager.DEFAULT_ADMIN_ROLE(), config.owner);
-        console2.log("DEFAULT_ADMIN_ROLE granted to owner for role management");
-        
-        // Revoke DEFAULT_ADMIN_ROLE from deployer for maximum security
-        dcaOutManager.revokeRole(dcaOutManager.DEFAULT_ADMIN_ROLE(), tx.origin);
-        console2.log("DEFAULT_ADMIN_ROLE revoked from deployer for security");
+        if(tx.origin != config.owner) {
+            // Grant DEFAULT_ADMIN_ROLE to owner for role management
+            dcaOutManager.grantRole(dcaOutManager.DEFAULT_ADMIN_ROLE(), config.owner);
+            console2.log("DEFAULT_ADMIN_ROLE granted to owner for role management");
+            
+            // Revoke DEFAULT_ADMIN_ROLE from deployer for maximum security
+            dcaOutManager.revokeRole(dcaOutManager.DEFAULT_ADMIN_ROLE(), tx.origin);
+            console2.log("DEFAULT_ADMIN_ROLE revoked from deployer for security");
+        }
         
         console2.log("Ownership transferred successfully");
 
