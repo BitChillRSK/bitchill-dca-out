@@ -130,26 +130,104 @@ interface IDcaOutManager {
     //////////////////////////////////////////////////////////////*/
 
     // Schedule management
+
+    /**
+     * @notice Create a new DCA schedule
+     * @param rbtcSaleAmount Amount of rBTC to sell per period
+     * @param salePeriod Time between sells (in seconds)
+     */
     function createDcaOutSchedule(uint256 rbtcSaleAmount, uint256 salePeriod) external payable;
+
+    /**
+     * @notice Update a DCA schedule
+     * @param scheduleIndex Index of the schedule
+     * @param scheduleId Schedule ID for validation
+     * @param rbtcSaleAmount New rBTC amount per period (0 to skip)
+     * @param salePeriod New sale period (0 to skip)
+     */
     function updateDcaOutSchedule(
         uint256 scheduleIndex,
         bytes32 scheduleId,
         uint256 rbtcSaleAmount,
         uint256 salePeriod
     ) external payable;
+
+    /**
+     * @notice Set the rBTC sale amount for a schedule
+     * @param scheduleIndex Index of the schedule
+     * @param scheduleId Schedule ID for validation
+     * @param rbtcSaleAmount New rBTC amount to sell per period
+     */
     function setSaleAmount(uint256 scheduleIndex, bytes32 scheduleId, uint256 rbtcSaleAmount) external;
+
+    /**
+     * @notice Set the sale period for a schedule
+     * @param scheduleIndex Index of the schedule
+     * @param scheduleId Schedule ID for validation
+     * @param salePeriod New time between sales (in seconds)
+     */
     function setSalePeriod(uint256 scheduleIndex, bytes32 scheduleId, uint256 salePeriod) external;
+
+    /**
+     * @notice Pause a schedule to prevent sales
+     * @param scheduleIndex Index of the schedule
+     * @param scheduleId Schedule ID for validation
+     */
     function pauseSchedule(uint256 scheduleIndex, bytes32 scheduleId) external;
+
+    /**
+     * @notice Unpause a schedule to allow sales
+     * @param scheduleIndex Index of the schedule
+     * @param scheduleId Schedule ID for validation
+     */
     function unpauseSchedule(uint256 scheduleIndex, bytes32 scheduleId) external;
+
+    /**
+     * @notice Delete a DCA schedule
+     * @param scheduleIndex Index of the schedule
+     * @param scheduleId Schedule ID for validation
+     */
     function deleteDcaOutSchedule(uint256 scheduleIndex, bytes32 scheduleId) external;
 
     // Deposit/Withdrawal
+
+    /**
+     * @notice Deposit rBTC to a schedule
+     * @param scheduleIndex Index of the schedule
+     * @param scheduleId Schedule ID for validation
+     */
     function depositRbtc(uint256 scheduleIndex, bytes32 scheduleId) external payable;
+
+    /**
+     * @notice Withdraw DOC balance
+     */
     function withdrawDoc() external;
+
+    /**
+     * @notice Withdraw rBTC from a schedule
+     * @param scheduleIndex Index of the schedule
+     * @param scheduleId Schedule ID for validation
+     * @param amount Amount of rBTC to withdraw - 0 to withdraw all
+     */
     function withdrawRbtc(uint256 scheduleIndex, bytes32 scheduleId, uint256 amount) external;
 
     // Execution (called by swapper)
+
+    /**
+     * @notice Gas-optimized trusted single sale (assumes well-formed inputs)
+     * @param user The user address
+     * @param scheduleIndex The schedule index
+     * @param scheduleId The schedule ID for validation
+     */
     function sellRbtc(address user, uint256 scheduleIndex, bytes32 scheduleId) external;
+
+    /**
+     * @notice Gas-optimized trusted batch sale (assumes well-formed inputs)
+     * @param users Addresses of the users on behalf of whom rBTC is going to be sold
+     * @param scheduleIndexes Indexes of the schedules that correspond to each user's sale
+     * @param scheduleIds IDs of the schedules that correspond to each user's sale
+     * @param totalRbtcToSpend Total amount of rBTC to spend
+     */
     function batchSellRbtc(
         address[] calldata users,
         uint256[] calldata scheduleIndexes,
@@ -158,9 +236,28 @@ interface IDcaOutManager {
     ) external;
 
     // Owner functions
+    /**
+     * @notice Set minimum sale period
+     * @param minPeriod Minimum time between sales
+     */
     function setMinSalePeriod(uint256 minPeriod) external;
+
+    /**
+     * @notice Set maximum schedules per user
+     * @param maxSchedules Maximum number of schedules
+     */
     function setMaxSchedulesPerUser(uint256 maxSchedules) external;
+
+    /**
+     * @notice Set minimum sale amount
+     * @param minSaleAmount Minimum rBTC amount per sell
+     */
     function setMinSaleAmount(uint256 minSaleAmount) external;
+
+    /**
+     * @notice Set MoC commission rate
+     * @param mocCommission MoC commission rate (using precision factor 1e18)
+     */
     function setMocCommission(uint256 mocCommission) external;
 
     /*//////////////////////////////////////////////////////////////
@@ -168,27 +265,157 @@ interface IDcaOutManager {
     //////////////////////////////////////////////////////////////*/
 
     // Getters
+    /**
+     * @notice Get all schedules for a user
+     * @param user User address
+     * @return Array of schedules
+     */
     function getSchedules(address user) external view returns (DcaOutSchedule[] memory);
+
+    /**
+     * @notice Get all schedules for the caller
+     * @return Array of schedules
+     */
     function getMySchedules() external view returns (DcaOutSchedule[] memory);
+
+    /**
+     * @notice Get all schedules for a user
+     * @param user User address
+     * @return Number of schedules
+     */
     function getSchedulesCount(address user) external view returns (uint256);
+
+    /**
+     * @notice Get number of schedules for the caller
+     * @return Number of schedules
+     */
     function getMySchedulesCount() external view returns (uint256);
+
+    /**
+     * @notice Get a user's schedule
+     * @param user User address
+     * @param scheduleIndex Schedule index
+     * @return The schedule details
+     */
     function getSchedule(address user, uint256 scheduleIndex) external view returns (DcaOutSchedule memory);
+
+    /**
+     * @notice Get caller's schedule
+     * @param scheduleIndex Schedule index
+     * @return The schedule details
+     */
     function getMySchedule(uint256 scheduleIndex) external view returns (DcaOutSchedule memory);
+    
+    /**
+     * @notice Get rBTC balance for a user's schedule
+     * @param user User address
+     * @param scheduleIndex Schedule index
+     * @return rBTC balance
+     */
     function getScheduleRbtcBalance(address user, uint256 scheduleIndex) external view returns (uint256);
+
+    /**
+     * @notice Get rBTC balance for caller's schedule
+     * @param scheduleIndex Schedule index
+     * @return rBTC balance
+     */
     function getMyScheduleRbtcBalance(uint256 scheduleIndex) external view returns (uint256);
+
+    /**
+     * @notice Get rBTC periodic sale amount for a user's schedule
+     * @param user User address
+     * @param scheduleIndex Schedule index
+     * @return rBTC periodic sale amount
+     */
     function getScheduleSaleAmount(address user, uint256 scheduleIndex) external view returns (uint256);
+
+    /**
+     * @notice Get rBTC periodic sale amount for caller's schedule
+     * @param scheduleIndex Schedule index
+     * @return rBTC periodic sale amount
+     */
     function getMyScheduleSaleAmount(uint256 scheduleIndex) external view returns (uint256);
+
+    /**
+     * @notice Get period for a user's schedule
+     * @param user User address
+     * @param scheduleIndex Schedule index
+     * @return Period
+     */
     function getScheduleSalePeriod(address user, uint256 scheduleIndex) external view returns (uint256);
+
+    /**
+     * @notice Get period for caller's schedule
+     * @param scheduleIndex Schedule index
+     * @return Period
+     */
     function getMyScheduleSalePeriod(uint256 scheduleIndex) external view returns (uint256);
+
+    /**
+     * @notice Get schedule ID for a user's schedule
+     * @param user User address
+     * @param scheduleIndex Schedule index
+     * @return Schedule ID
+     */
     function getScheduleId(address user, uint256 scheduleIndex) external view returns (bytes32);
+
+    /**
+     * @notice Get schedule ID for caller's schedule
+     * @param scheduleIndex Schedule index
+     * @return Schedule ID
+     */
     function getMyScheduleId(uint256 scheduleIndex) external view returns (bytes32);
+
+    /**
+     * @notice Get whether a schedule is paused
+     * @param user User address
+     * @param scheduleIndex Schedule index
+     * @return Whether the schedule is paused
+     */
     function getScheduleIsPaused(address user, uint256 scheduleIndex) external view returns (bool);
+
+    /**
+     * @notice Get whether caller's schedule is paused
+     * @param scheduleIndex Schedule index
+     * @return Whether the schedule is paused
+     */
     function getMyScheduleIsPaused(uint256 scheduleIndex) external view returns (bool);
+
+    /**
+     * @notice Get caller's DOC balance
+     * @return DOC balance
+     */
     function getMyDocBalance() external view returns (uint256);
+
+    /**
+     * @notice Get user's total DOC balance
+     * @param user User address
+     * @return DOC balance
+     */
     function getUserDocBalance(address user) external view returns (uint256);
+
+    /**
+     * @notice Get minimum sale period
+     * @return Minimum sale period
+     */
     function getMinSalePeriod() external view returns (uint256);
+
+    /**
+     * @notice Get maximum schedules per user
+     * @return Maximum schedules
+     */
     function getMaxSchedulesPerUser() external view returns (uint256);
+
+    /**
+     * @notice Get minimum sell amount
+     * @return Minimum sell amount
+     */
     function getMinSaleAmount() external view returns (uint256);
+
+    /**
+     * @notice Get MoC commission rate
+     * @return MoC commission rate (using precision factor 1e18)
+     */
     function getMocCommission() external view returns (uint256);
 }
 
