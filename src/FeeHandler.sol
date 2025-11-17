@@ -48,11 +48,8 @@ abstract contract FeeHandler is IFeeHandler, Ownable {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Set all fee rate parameters at once
-     * @param minFeeRate Minimum fee rate
-     * @param maxFeeRate Maximum fee rate
-     * @param feePurchaseLowerBound Lower bound for fee calculation
-     * @param feePurchaseUpperBound Upper bound for fee calculation
+     * @inheritdoc IFeeHandler
+     * @dev Validates parameters and calls individual setters to emit events
      */
     function setFeeRateParams(
         uint256 minFeeRate,
@@ -76,46 +73,31 @@ abstract contract FeeHandler is IFeeHandler, Ownable {
         }
     }
 
-    /**
-     * @notice Set the minimum fee rate
-     * @param minFeeRate Minimum fee rate
-     */
+    /// @inheritdoc IFeeHandler
     function setMinFeeRate(uint256 minFeeRate) public override onlyOwner {
         s_minFeeRate = minFeeRate;
         emit FeeHandler__MinFeeRateSet(minFeeRate);
     }
 
-    /**
-     * @notice Set the maximum fee rate
-     * @param maxFeeRate Maximum fee rate
-     */
+    /// @inheritdoc IFeeHandler
     function setMaxFeeRate(uint256 maxFeeRate) public override onlyOwner {
         s_maxFeeRate = maxFeeRate;
         emit FeeHandler__MaxFeeRateSet(maxFeeRate);
     }
 
-    /**
-     * @notice Set the purchase lower bound
-     * @param feePurchaseLowerBound Purchase amount below which max fee applies
-     */
+    /// @inheritdoc IFeeHandler
     function setPurchaseLowerBound(uint256 feePurchaseLowerBound) public override onlyOwner {
         s_feePurchaseLowerBound = feePurchaseLowerBound;
         emit FeeHandler__PurchaseLowerBoundSet(feePurchaseLowerBound);
     }
 
-    /**
-     * @notice Set the purchase upper bound
-     * @param feePurchaseUpperBound Purchase amount above which min fee applies
-     */
+    /// @inheritdoc IFeeHandler
     function setPurchaseUpperBound(uint256 feePurchaseUpperBound) public override onlyOwner {
         s_feePurchaseUpperBound = feePurchaseUpperBound;
         emit FeeHandler__PurchaseUpperBoundSet(feePurchaseUpperBound);
     }
 
-    /**
-     * @notice Set the fee collector address
-     * @param feeCollector Address to receive fees
-     */
+    /// @inheritdoc IFeeHandler
     function setFeeCollectorAddress(address feeCollector) external override onlyOwner {
         if (feeCollector == address(0)) revert FeeHandler__FeeCollectorCannotBeZero();
         s_feeCollector = feeCollector;
@@ -126,42 +108,27 @@ abstract contract FeeHandler is IFeeHandler, Ownable {
                                 GETTERS
     //////////////////////////////////////////////////////////////*/
 
-    /**
-     * @notice Get the minimum fee rate
-     * @return The minimum fee rate
-     */
+    /// @inheritdoc IFeeHandler
     function getMinFeeRate() public view override returns (uint256) {
         return s_minFeeRate;
     }
 
-    /**
-     * @notice Get the maximum fee rate
-     * @return The maximum fee rate
-     */
+    /// @inheritdoc IFeeHandler
     function getMaxFeeRate() public view override returns (uint256) {
         return s_maxFeeRate;
     }
 
-    /**
-     * @notice Get the fee purchase lower bound
-     * @return The purchase amount below which max fee applies
-     */
+    /// @inheritdoc IFeeHandler
     function getFeePurchaseLowerBound() public view override returns (uint256) {
         return s_feePurchaseLowerBound;
     }
 
-    /**
-     * @notice Get the fee purchase upper bound
-     * @return The purchase amount above which min fee applies
-     */
+    /// @inheritdoc IFeeHandler
     function getFeePurchaseUpperBound() public view override returns (uint256) {
         return s_feePurchaseUpperBound;
     }
 
-    /**
-     * @notice Get the fee collector address
-     * @return The fee collector address
-     */
+    /// @inheritdoc IFeeHandler
     function getFeeCollectorAddress() external view override returns (address) {
         return s_feeCollector;
     }

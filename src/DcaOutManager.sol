@@ -78,9 +78,9 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Create a new DCA schedule
-     * @param rbtcSaleAmount Amount of rBTC to sell per period
-     * @param salePeriod Time between sells (in seconds)
+     * @inheritdoc IDcaOutManager
+     * @dev Uses assembly for gas-optimized schedule ID generation
+     *      Validates inputs against protocol limits before storage
      */
     function createDcaOutSchedule(uint256 rbtcSaleAmount, uint256 salePeriod)
         external
@@ -131,13 +131,7 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         emit DcaOutManager__ScheduleCreated(msg.sender, rbtcSaleAmount, salePeriod, scheduleIndex, scheduleId, msg.value);
     }
 
-    /**
-     * @notice Update a DCA schedule
-     * @param scheduleIndex Index of the schedule
-     * @param scheduleId Schedule ID for validation
-     * @param rbtcSaleAmount New rBTC amount per period (0 to skip)
-     * @param salePeriod New sale period (0 to skip)
-     */
+    /// @inheritdoc IDcaOutManager
     function updateDcaOutSchedule(
         uint256 scheduleIndex,
         bytes32 scheduleId,
@@ -169,12 +163,7 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         );
     }
 
-    /**
-     * @notice Set the rBTC sale amount for a schedule
-     * @param scheduleIndex Index of the schedule
-     * @param scheduleId Schedule ID for validation
-     * @param rbtcSaleAmount New rBTC amount to sell per period
-     */
+    /// @inheritdoc IDcaOutManager
     function setSaleAmount(uint256 scheduleIndex, bytes32 scheduleId, uint256 rbtcSaleAmount)
         external
         override
@@ -186,12 +175,7 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         emit DcaOutManager__SaleAmountSet(msg.sender, scheduleId, rbtcSaleAmount);
     }
 
-    /**
-     * @notice Set the sale period for a schedule
-     * @param scheduleIndex Index of the schedule
-     * @param scheduleId Schedule ID for validation
-     * @param salePeriod New time between sales (in seconds)
-     */
+    /// @inheritdoc IDcaOutManager
     function setSalePeriod(uint256 scheduleIndex, bytes32 scheduleId, uint256 salePeriod)
         external
         override
@@ -203,11 +187,7 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         emit DcaOutManager__SalePeriodSet(msg.sender, scheduleId, salePeriod);
     }
 
-    /**
-     * @notice Pause a schedule to prevent sales
-     * @param scheduleIndex Index of the schedule
-     * @param scheduleId Schedule ID for validation
-     */
+    /// @inheritdoc IDcaOutManager
     function pauseSchedule(uint256 scheduleIndex, bytes32 scheduleId)
         external
         override
@@ -218,11 +198,7 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         emit DcaOutManager__SchedulePaused(msg.sender, scheduleId);
     }
 
-    /**
-     * @notice Unpause a schedule to allow sales
-     * @param scheduleIndex Index of the schedule
-     * @param scheduleId Schedule ID for validation
-     */
+    /// @inheritdoc IDcaOutManager
     function unpauseSchedule(uint256 scheduleIndex, bytes32 scheduleId)
         external
         override
@@ -233,11 +209,7 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         emit DcaOutManager__ScheduleUnpaused(msg.sender, scheduleId);
     }
 
-    /**
-     * @notice Delete a DCA schedule
-     * @param scheduleIndex Index of the schedule
-     * @param scheduleId Schedule ID for validation
-     */
+    /// @inheritdoc IDcaOutManager
     function deleteDcaOutSchedule(uint256 scheduleIndex, bytes32 scheduleId)
         external
         override
@@ -267,11 +239,7 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
                         DEPOSIT/WITHDRAWAL
     //////////////////////////////////////////////////////////////*/
 
-    /**
-     * @notice Deposit rBTC to a schedule
-     * @param scheduleIndex Index of the schedule
-     * @param scheduleId Schedule ID for validation
-     */
+    /// @inheritdoc IDcaOutManager
     function depositRbtc(uint256 scheduleIndex, bytes32 scheduleId)
         external
         payable
@@ -288,12 +256,7 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         emit DcaOutManager__RbtcDeposited(msg.sender, msg.value, scheduleId, scheduleIndex);
     }
 
-    /**
-     * @notice Withdraw rBTC from a schedule
-     * @param scheduleIndex Index of the schedule
-     * @param scheduleId Schedule ID for validation
-     * @param amount Amount of rBTC to withdraw - 0 to withdraw all
-     */
+    /// @inheritdoc IDcaOutManager
     function withdrawRbtc(uint256 scheduleIndex, bytes32 scheduleId, uint256 amount)
         external
         override
@@ -308,9 +271,7 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         emit DcaOutManager__RbtcWithdrawn(msg.sender, amount, scheduleId, scheduleIndex);
     }
 
-    /**
-     * @notice Withdraw DOC balance
-     */
+    /// @inheritdoc IDcaOutManager
     function withdrawDoc() external override nonReentrant {
         uint256 balance = s_userDocBalances[msg.sender];
         if (balance == 0) revert DcaOutManager__NoDocToWithdraw();
@@ -324,11 +285,8 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Gas-optimized trusted single sale (assumes well-formed inputs)
+     * @inheritdoc IDcaOutManager
      * @dev Skips ID and period validations to minimize gas. Intended for BitChill bot.
-     * @param user The user address
-     * @param scheduleIndex The schedule index
-     * @param scheduleId The schedule ID for validation
      */
     function sellRbtc(
         address user,
@@ -356,13 +314,7 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         );
     }
     
-    /**
-     * @notice Gas-optimized trusted batch sale (assumes well-formed inputs)
-     * @param users Addresses of the users on behalf of whom rBTC is going to be sold
-     * @param scheduleIndexes Indexes of the schedules that correspond to each user's sale
-     * @param scheduleIds IDs of the schedules that correspond to each user's sale
-     * @param totalRbtcToSpend Total amount of rBTC to spend
-     */
+    /// @inheritdoc IDcaOutManager
     function batchSellRbtc(
         address[] calldata users,
         uint256[] calldata scheduleIndexes,
@@ -394,6 +346,16 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         emit DcaOutManager__RbtcSoldBatch(totalRbtcToSpend, totalDocReceived - totalFee, totalDocReceived, len);
     }
 
+    /**
+     * @dev Internal function to process a user's sale
+     * @param user The user address
+     * @param scheduleIndex The schedule index
+     * @param scheduleId The schedule ID for validation
+     * @param totalDocReceived The total DOC received
+     * @param totalRbtcToSpend The total rBTC to spend
+     * @return saleAmount The amount of rBTC sold
+     * @return fee The fee amount
+     */
     function _processUserSale(
         address user,
         uint256 scheduleIndex,
@@ -421,42 +383,32 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
                            OWNER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /**
-     * @notice Set minimum sale period
-     * @param minSalePeriod Minimum time between sales
-     */
+    /// @inheritdoc IDcaOutManager
     function setMinSalePeriod(uint256 minSalePeriod) external override onlyOwner {
         s_minSalePeriod = minSalePeriod;
         emit DcaOutManager__MinSalePeriodSet(minSalePeriod);
     }
 
-    /**
-     * @notice Set maximum schedules per user
-     * @param maxSchedules Maximum number of schedules
-     */
+    /// @inheritdoc IDcaOutManager
     function setMaxSchedulesPerUser(uint256 maxSchedules) external override onlyOwner {
         s_maxSchedulesPerUser = maxSchedules;
         emit DcaOutManager__MaxSchedulesPerUserSet(maxSchedules);
     }
 
-    /**
-     * @notice Set minimum sale amount
-     * @param minSaleAmount Minimum rBTC amount per sell
-     */
+    /// @inheritdoc IDcaOutManager
     function setMinSaleAmount(uint256 minSaleAmount) external onlyOwner {
         s_minSaleAmount = minSaleAmount;
         emit DcaOutManager__MinSaleAmountSet(minSaleAmount);
     }
 
     /**
-     * @notice Set MoC commission rate
+     * @inheritdoc IDcaOutManager
      * @dev This should be kept in sync with MoC's actual commission rate.
      *      MoC commission can be changed via governance. When it changes,
      *      the owner should update this value accordingly.
      *      The commission rate uses precision factor 1e18 (e.g., 15e14 = 0.15%, 2e15 = 0.2%).
      *      To get the current MoC rate, check: MoCInrate.commissionRatesByTxType(MINT_DOC_FEES_RBTC)
      *      where MINT_DOC_FEES_RBTC = 3.
-     * @param mocCommission MoC commission rate (using precision factor 1e18)
      */
     function setMocCommission(uint256 mocCommission) external onlyOwner {
         s_mocCommission = mocCommission;
@@ -572,46 +524,27 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
                                 GETTERS
     //////////////////////////////////////////////////////////////*/
 
-    /**
-     * @notice Get all schedules for a user
-     * @param user User address
-     * @return Array of schedules
-     */
+    /// @inheritdoc IDcaOutManager
     function getSchedules(address user) public view override returns (DcaOutSchedule[] memory) {
         return s_userSchedules[user];
     }
 
-    /**
-     * @notice Get all schedules for the caller
-     * @return Array of schedules
-     */
+    /// @inheritdoc IDcaOutManager
     function getMySchedules() external view override returns (DcaOutSchedule[] memory) {
         return getSchedules(msg.sender);
     }
 
-    /**
-     * @notice Get all schedules for a user
-     * @param user User address
-     * @return Number of schedules
-     */
+    /// @inheritdoc IDcaOutManager
     function getSchedulesCount(address user) public view override returns (uint256) {
         return getSchedules(user).length;
     }
 
-    /**
-     * @notice Get number of schedules for the caller
-     * @return Number of schedules
-     */
+    /// @inheritdoc IDcaOutManager
     function getMySchedulesCount() external view override returns (uint256) {
         return getSchedulesCount(msg.sender);
     }
 
-    /**
-     * @notice Get a user's schedule
-     * @param user User address
-     * @param scheduleIndex Schedule index
-     * @return The schedule details
-     */
+    /// @inheritdoc IDcaOutManager
     function getSchedule(address user, uint256 scheduleIndex)
         public
         view
@@ -621,21 +554,12 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         return s_userSchedules[user][scheduleIndex];
     }
 
-    /**
-     * @notice Get caller's schedule
-     * @param scheduleIndex Schedule index
-     * @return The schedule details
-     */
+    /// @inheritdoc IDcaOutManager
     function getMySchedule(uint256 scheduleIndex) external view override returns (DcaOutSchedule memory) {
         return getSchedule(msg.sender, scheduleIndex);
     }
 
-    /**
-     * @notice Get rBTC balance for a user's schedule
-     * @param user User address
-     * @param scheduleIndex Schedule index
-     * @return rBTC balance
-     */
+    /// @inheritdoc IDcaOutManager
     function getScheduleRbtcBalance(address user, uint256 scheduleIndex)
         public
         view
@@ -645,21 +569,12 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         return s_userSchedules[user][scheduleIndex].rbtcBalance;
     }
 
-    /**
-     * @notice Get rBTC balance for caller's schedule
-     * @param scheduleIndex Schedule index
-     * @return rBTC balance
-     */
+    /// @inheritdoc IDcaOutManager
     function getMyScheduleRbtcBalance(uint256 scheduleIndex) external view override returns (uint256) {
         return getScheduleRbtcBalance(msg.sender, scheduleIndex);
     }
 
-    /**
-     * @notice Get rBTC periodic sale amount for a user's schedule
-     * @param user User address
-     * @param scheduleIndex Schedule index
-     * @return rBTC periodic sale amount
-     */
+    /// @inheritdoc IDcaOutManager
     function getScheduleSaleAmount(address user, uint256 scheduleIndex)
         public
         view
@@ -669,21 +584,12 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         return s_userSchedules[user][scheduleIndex].rbtcSaleAmount;
     }
 
-    /**
-     * @notice Get rBTC periodic sale amount for caller's schedule
-     * @param scheduleIndex Schedule index
-     * @return rBTC periodic sale amount
-     */
+    /// @inheritdoc IDcaOutManager
     function getMyScheduleSaleAmount(uint256 scheduleIndex) external view override returns (uint256) {
         return getScheduleSaleAmount(msg.sender, scheduleIndex);
     }
 
-    /**
-     * @notice Get period for a user's schedule
-     * @param user User address
-     * @param scheduleIndex Schedule index
-     * @return Period
-     */
+    /// @inheritdoc IDcaOutManager
     function getScheduleSalePeriod(address user, uint256 scheduleIndex)
         public
         view
@@ -693,21 +599,12 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         return s_userSchedules[user][scheduleIndex].salePeriod;
     }
 
-    /**
-     * @notice Get period for caller's schedule
-     * @param scheduleIndex Schedule index
-     * @return Period
-     */
+    /// @inheritdoc IDcaOutManager
     function getMyScheduleSalePeriod(uint256 scheduleIndex) external view override returns (uint256) {
         return getScheduleSalePeriod(msg.sender, scheduleIndex);
     }
 
-    /**
-     * @notice Get schedule ID for a user's schedule
-     * @param user User address
-     * @param scheduleIndex Schedule index
-     * @return Schedule ID
-     */
+    /// @inheritdoc IDcaOutManager
     function getScheduleId(address user, uint256 scheduleIndex)
         public
         view
@@ -717,63 +614,37 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         return s_userSchedules[user][scheduleIndex].scheduleId;
     }
 
-    /**
-     * @notice Get schedule ID for caller's schedule
-     * @param scheduleIndex Schedule index
-     * @return Schedule ID
-     */
+    /// @inheritdoc IDcaOutManager
     function getMyScheduleId(uint256 scheduleIndex) external view override returns (bytes32) {
         return getScheduleId(msg.sender, scheduleIndex);
     }
 
-    /**
-     * @notice Get whether a schedule is paused
-     * @param user User address
-     * @param scheduleIndex Schedule index
-     * @return Whether the schedule is paused
-     */
+    /// @inheritdoc IDcaOutManager
     function getScheduleIsPaused(address user, uint256 scheduleIndex) public view override returns (bool) {
         return s_userSchedules[user][scheduleIndex].paused;
     }
 
-    /**
-     * @notice Get whether caller's schedule is paused
-     * @param scheduleIndex Schedule index
-     * @return Whether the schedule is paused
-     */
+    /// @inheritdoc IDcaOutManager
     function getMyScheduleIsPaused(uint256 scheduleIndex) external view override returns (bool) {
         return getScheduleIsPaused(msg.sender, scheduleIndex);
     }
 
-    /**
-     * @notice Get caller's DOC balance
-     * @return DOC balance
-     */
+    /// @inheritdoc IDcaOutManager
     function getMyDocBalance() external view override returns (uint256) {
         return getUserDocBalance(msg.sender);
     }
 
-    /**
-     * @notice Get user's total DOC balance
-     * @param user User address
-     * @return DOC balance
-     */
+    /// @inheritdoc IDcaOutManager
     function getUserDocBalance(address user) public view override returns (uint256) {
         return s_userDocBalances[user];
     }
 
-    /**
-     * @notice Get minimum sale period
-     * @return Minimum sale period
-     */
+    /// @inheritdoc IDcaOutManager
     function getMinSalePeriod() external view override returns (uint256) {
         return s_minSalePeriod;
     }
 
-    /**
-     * @notice Get maximum schedules per user
-     * @return Maximum schedules
-     */
+    /// @inheritdoc IDcaOutManager
     function getMaxSchedulesPerUser() external view override returns (uint256) {
         return s_maxSchedulesPerUser;
     }
