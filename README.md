@@ -280,9 +280,9 @@ The protocol integrates with Money on Chain (MoC) to mint DOC tokens. MoC charge
 
 **Checking Current MoC Commission:**
 ```bash
-cast call <MOC_INRATE_ADDRESS> 'commissionRatesByTxType(uint8)' 3 --rpc-url $MAINNET_RPC_URL
+cast call 0xc0f9B54c41E3d0587Ce0F7540738d8d649b0A3F3 'commissionRatesByTxType(uint8)' 3 --rpc-url $MAINNET_RPC_URL
 ```
-Where `3` is the transaction type for `MINT_DOC_FEES_RBTC`.
+Where `3` is the transaction type for `MINT_DOC_FEES_RBTC` and 0xc0f9B54c41E3d0587Ce0F7540738d8d649b0A3F3 the address of the MoCInRate contract. 
 
 **Updating Commission Rate:**
 If MoC changes their commission rate, the contract owner must update it via `setMocCommission()`:
