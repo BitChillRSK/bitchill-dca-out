@@ -133,9 +133,28 @@ abstract contract FeeHandler is IFeeHandler, Ownable {
         return s_feeCollector;
     }
 
+    /// @inheritdoc IFeeHandler
+    function getFeeSettings() external view override returns (FeeSettings memory) {
+        return _feeSettings();
+    }
+
     /*//////////////////////////////////////////////////////////////
                            INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Calculate fee based on the DOC amount minted
+     * @dev Uses the fee settings stored in the contract. 
+     * Called only by sellRbtc where there's no need to load feeSettings first for gas efficiency.
+     * @param docAmount The amount of DOC minted
+     * @return The fee amount to be collected
+     */
+    function _calculateFee(uint256 docAmount) internal view returns (uint256) {
+        return _calculateFeeWithParams(
+            docAmount,
+            _feeSettings()
+        );
+    }
 
     /**
      * @notice Calculate fee based on the DOC amount minted
@@ -146,28 +165,23 @@ abstract contract FeeHandler is IFeeHandler, Ownable {
      * @param docAmount The amount of DOC minted
      * @return The fee amount to be collected
      */
-    function _calculateFee(uint256 docAmount) internal view returns (uint256) {
-        uint256 minFeeRate = s_minFeeRate;
-        uint256 maxFeeRate = s_maxFeeRate;
-        uint256 feePurchaseUpperBound = s_feePurchaseUpperBound;
-
+    function _calculateFeeWithParams(uint256 docAmount, FeeSettings memory feeSettings) internal view returns (uint256) {
         // If flat rate or amount is above upper bound, apply minimum fee
-        if (minFeeRate == maxFeeRate || docAmount >= feePurchaseUpperBound) {
-            return docAmount * minFeeRate / FEE_PERCENTAGE_DIVISOR;
+        if (feeSettings.minFeeRate == feeSettings.maxFeeRate || docAmount >= feeSettings.feePurchaseUpperBound) {
+            return docAmount * feeSettings.minFeeRate / FEE_PERCENTAGE_DIVISOR;
         }
 
-        uint256 feePurchaseLowerBound = s_feePurchaseLowerBound;
         // If amount is below lower bound, apply maximum fee
-        if (docAmount <= feePurchaseLowerBound) {
-            return docAmount * maxFeeRate / FEE_PERCENTAGE_DIVISOR;
+        if (docAmount <= feeSettings.feePurchaseLowerBound) {
+            return docAmount * feeSettings.maxFeeRate / FEE_PERCENTAGE_DIVISOR;
         }
 
         // Calculate interpolated fee rate for amounts in between
         uint256 feeRate;
         unchecked {
-            feeRate = maxFeeRate
-                - ((docAmount - feePurchaseLowerBound) * (maxFeeRate - minFeeRate))
-                    / (feePurchaseUpperBound - feePurchaseLowerBound);
+            feeRate = feeSettings.maxFeeRate
+                - ((docAmount - feeSettings.feePurchaseLowerBound) * (feeSettings.maxFeeRate - feeSettings.minFeeRate))
+                    / (feeSettings.feePurchaseUpperBound - feeSettings.feePurchaseLowerBound);
         }
         return docAmount * feeRate / FEE_PERCENTAGE_DIVISOR;
     }
@@ -179,6 +193,15 @@ abstract contract FeeHandler is IFeeHandler, Ownable {
      */
     function _transferFee(IERC20 token, uint256 fee) internal {
         token.safeTransfer(s_feeCollector, fee);
+    }
+
+    function _feeSettings() internal view returns (FeeSettings memory) {
+        return FeeSettings({
+            minFeeRate: s_minFeeRate,
+            maxFeeRate: s_maxFeeRate,
+            feePurchaseLowerBound: s_feePurchaseLowerBound,
+            feePurchaseUpperBound: s_feePurchaseUpperBound
+        });
     }
 }
 

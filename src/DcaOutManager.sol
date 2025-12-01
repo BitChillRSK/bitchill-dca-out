@@ -326,13 +326,16 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         uint256 sumOfSaleAmounts;
         uint256 totalFee;
 
+        FeeSettings memory feeSettings = _feeSettings();
+
         for (uint256 i; i < len;) {
             (uint256 saleAmount, uint256 fee) = _processUserSale(
                 users[i],
                 scheduleIndexes[i],
                 scheduleIds[i],
                 totalDocReceived,
-                totalRbtcToSpend
+                totalRbtcToSpend,
+                feeSettings
             );
             sumOfSaleAmounts += saleAmount;
             totalFee += fee;
@@ -361,7 +364,8 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         uint256 scheduleIndex,
         bytes32 scheduleId,
         uint256 totalDocReceived,
-        uint256 totalRbtcToSpend
+        uint256 totalRbtcToSpend,
+        FeeSettings memory feeSettings
     ) internal returns (uint256 saleAmount, uint256 fee) {
         _validateScheduleIndexAndId(user, scheduleIndex, scheduleId);
         DcaOutSchedule storage schedule = s_userSchedules[user][scheduleIndex];
@@ -373,7 +377,7 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         uint256 docReceived = (totalDocReceived * saleAmount) / totalRbtcToSpend;
         schedule.rbtcBalance -= saleAmount;
 
-        fee = _calculateFee(docReceived);
+        fee = _calculateFeeWithParams(docReceived, feeSettings);
         s_userDocBalances[user] += docReceived - fee;
 
         emit DcaOutManager__RbtcSold(user, scheduleId, saleAmount, docReceived - fee, docReceived);

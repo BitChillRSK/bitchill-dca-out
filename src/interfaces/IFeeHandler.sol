@@ -117,5 +117,11 @@ interface IFeeHandler {
      * @return The fee collector address
      */
     function getFeeCollectorAddress() external view returns (address);
+
+    /**
+     * @notice Get the fee settings
+     * @return The fee settings
+     */
+    function getFeeSettings() external view returns (FeeSettings memory);
 }
 
