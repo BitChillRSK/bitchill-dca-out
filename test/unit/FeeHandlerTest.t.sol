@@ -74,7 +74,7 @@ contract FeeHandlerTest is DcaOutTestBase {
     }
 
     function testSetMaxFeeRate() public {
-        uint256 newMaxRate = 80;
+        uint256 newMaxRate = 200;
         
         vm.prank(owner);
         vm.expectEmit(true, true, true, true);
@@ -163,13 +163,13 @@ contract FeeHandlerTest is DcaOutTestBase {
 
     function testCannotSetFeeRateParamsWithMinHigherThanMax() public {
         vm.prank(owner);
-        vm.expectRevert(abi.encodeWithSelector(IFeeHandler.FeeHandler__MinFeeRateCannotBeHigherThanMax.selector));
+        vm.expectRevert(abi.encodeWithSelector(IFeeHandler.FeeHandler__InvalidFeeRateLimits.selector, 200, 100));
         dcaOutManager.setFeeRateParams(200, 100, 1000, 2000); // min > max
     }
 
     function testCannotSetFeeRateParamsWithLowerBoundHigherThanUpperBound() public {
         vm.prank(owner);
-        vm.expectRevert(abi.encodeWithSelector(IFeeHandler.FeeHandler__FeeLowerBoundCAnnotBeHigherThanUpperBound.selector));
+        vm.expectRevert(abi.encodeWithSelector(IFeeHandler.FeeHandler__InvalidBounds.selector, 2000, 1000));
         dcaOutManager.setFeeRateParams(100, 200, 2000, 1000); // lower > upper
     }
 
