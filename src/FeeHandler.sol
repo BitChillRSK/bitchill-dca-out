@@ -173,32 +173,6 @@ abstract contract FeeHandler is IFeeHandler, Ownable {
     }
 
     /**
-     * @notice Calculate fees and net amounts for a batch of DOC amounts
-     * @param docAmounts Array of DOC amounts minted
-     * @return aggregatedFee Total fee to be collected
-     * @return netAmountsToUser Array of net amounts after fees for each user
-     * @return totalNetAmount Total net amount distributed to users
-     */
-    function _calculateFeeAndNetAmounts(uint256[] memory docAmounts)
-        internal
-        view
-        returns (uint256 aggregatedFee, uint256[] memory netAmountsToUser, uint256 totalNetAmount)
-    {
-        uint256 len = docAmounts.length;
-        netAmountsToUser = new uint256[](len);
-
-        for (uint256 i; i < len; ++i) {
-            uint256 amount = docAmounts[i];
-            uint256 fee = _calculateFee(amount);
-            aggregatedFee += fee;
-
-            uint256 net = amount - fee;
-            netAmountsToUser[i] = net;
-            totalNetAmount += net;
-        }
-    }
-
-    /**
      * @notice Transfer collected fees to the fee collector
      * @param token The DOC token contract
      * @param fee The fee amount to transfer
