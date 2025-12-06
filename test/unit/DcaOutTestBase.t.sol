@@ -341,16 +341,17 @@ contract DcaOutTestBase is Test {
      * @param scheduleIndex The schedule index
      * @param scheduleId The schedule ID
      * @param amount Amount to withdraw (0 for all)
+     * @param to Address to send the rBTC to - 0x0 to send to the caller
      */
-    function withdrawRbtc(address userAddress, uint256 scheduleIndex, bytes32 scheduleId, uint256 amount) internal {
+    function withdrawRbtc(address userAddress, uint256 scheduleIndex, bytes32 scheduleId, uint256 amount, address payable to) internal {
         uint256 balanceBefore = dcaOutManager.getScheduleRbtcBalance(userAddress, scheduleIndex);
         uint256 expectedWithdrawal = (amount == 0 || amount > balanceBefore) ? balanceBefore : amount;
         
         // Check event emission
         vm.expectEmit(true, true, true, true);
-        emit DcaOutManager__RbtcWithdrawn(userAddress, expectedWithdrawal, scheduleId, scheduleIndex);
+        emit DcaOutManager__RbtcWithdrawn(to, expectedWithdrawal, scheduleId, scheduleIndex);
         vm.prank(userAddress);
-        dcaOutManager.withdrawRbtc(scheduleIndex, scheduleId, amount);
+        dcaOutManager.withdrawRbtc(scheduleIndex, scheduleId, amount, to);
         
         // Verify withdrawal
         uint256 balanceAfter = dcaOutManager.getScheduleRbtcBalance(userAddress, scheduleIndex);

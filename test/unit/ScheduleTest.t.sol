@@ -100,7 +100,7 @@ contract ScheduleTest is DcaOutTestBase {
         emit DcaOutManager__RbtcWithdrawn(user, DEPOSIT_AMOUNT / 2, schedule.scheduleId, 0);
         
         vm.prank(user);
-        dcaOutManager.withdrawRbtc(0, schedule.scheduleId, DEPOSIT_AMOUNT / 2);
+        dcaOutManager.withdrawRbtc(0, schedule.scheduleId, DEPOSIT_AMOUNT / 2, payable(user));
         uint256 balanceAfter = user.balance;
 
         assertEq(balanceAfter - balanceBefore, DEPOSIT_AMOUNT / 2, "User should receive withdrawn rBTC");
@@ -116,7 +116,7 @@ contract ScheduleTest is DcaOutTestBase {
         vm.expectEmit(true, true, true, true);
         emit DcaOutManager__RbtcWithdrawn(user, DEPOSIT_AMOUNT, schedule.scheduleId, 0);
         vm.prank(user);
-        dcaOutManager.withdrawRbtc(0, schedule.scheduleId, DEPOSIT_AMOUNT + 1); // Withdraw more than the schedule balance
+        dcaOutManager.withdrawRbtc(0, schedule.scheduleId, DEPOSIT_AMOUNT + 1, payable(user)); // Withdraw more than the schedule balance
         uint256 balanceAfter = user.balance;
 
         assertEq(balanceAfter - balanceBefore, DEPOSIT_AMOUNT, "User should receive all deposited rBTC back (and no more)");
@@ -132,7 +132,7 @@ contract ScheduleTest is DcaOutTestBase {
         emit DcaOutManager__RbtcWithdrawn(user, DEPOSIT_AMOUNT, schedule.scheduleId, 0);
         
         vm.prank(user);
-        dcaOutManager.withdrawRbtc(0, schedule.scheduleId, 0); // Withdraw all rBTC by setting amount to 0
+        dcaOutManager.withdrawRbtc(0, schedule.scheduleId, 0, payable(user)); // Withdraw all rBTC by setting amount to 0
         uint256 balanceAfter = user.balance;
 
         assertEq(balanceAfter - balanceBefore, DEPOSIT_AMOUNT, "User should receive all rBTC back");
@@ -147,7 +147,7 @@ contract ScheduleTest is DcaOutTestBase {
         assertEq(balance, DEPOSIT_AMOUNT, "Should have DEPOSIT_AMOUNT balance");
 
         vm.prank(user);
-        dcaOutManager.withdrawRbtc(0, schedule.scheduleId, balance); // Withdraw exact balance
+        dcaOutManager.withdrawRbtc(0, schedule.scheduleId, balance, payable(user)); // Withdraw exact balance
 
         uint256 newBalance = dcaOutManager.getScheduleRbtcBalance(user, 0);
         assertEq(newBalance, 0, "Balance should be zero after withdrawing all");

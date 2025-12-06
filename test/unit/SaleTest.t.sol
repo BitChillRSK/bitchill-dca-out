@@ -152,7 +152,7 @@ contract SaleTest is DcaOutTestBase {
 
         // Withdraw almost all balance to make it insufficient for the sale amount
         vm.prank(user);
-        dcaOutManager.withdrawRbtc(0, schedule.scheduleId, DEPOSIT_AMOUNT - SALE_AMOUNT / 10);
+        dcaOutManager.withdrawRbtc(0, schedule.scheduleId, DEPOSIT_AMOUNT - SALE_AMOUNT / 10, payable(user));
 
         // Check balance is now insufficient
         uint256 remainingBalance = dcaOutManager.getScheduleRbtcBalance(user, 0);

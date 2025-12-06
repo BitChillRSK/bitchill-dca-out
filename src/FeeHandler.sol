@@ -165,9 +165,10 @@ abstract contract FeeHandler is IFeeHandler, Ownable {
      *      - Amounts >= upper bound: min fee rate
      *      - Amounts in between: linear interpolation
      * @param docAmount The amount of DOC minted
+     * @param feeSettings The fee settings
      * @return The fee amount to be collected
      */
-    function _calculateFeeWithParams(uint256 docAmount, FeeSettings memory feeSettings) internal view returns (uint256) {
+    function _calculateFeeWithParams(uint256 docAmount, FeeSettings memory feeSettings) internal pure returns (uint256) {
         // If flat rate or amount is above upper bound, apply minimum fee
         if (feeSettings.minFeeRate == feeSettings.maxFeeRate || docAmount >= feeSettings.feePurchaseUpperBound) {
             return docAmount * feeSettings.minFeeRate / FEE_PERCENTAGE_DIVISOR;

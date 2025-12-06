@@ -129,7 +129,7 @@ interface IDcaOutManager {
                             EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    // Schedule management
+    /// Schedule management ///
 
     /**
      * @notice Create a new DCA schedule
@@ -189,7 +189,7 @@ interface IDcaOutManager {
      */
     function deleteDcaOutSchedule(uint256 scheduleIndex, bytes32 scheduleId) external;
 
-    // Deposit/Withdrawal
+    /// Deposit/Withdrawal ///
 
     /**
      * @notice Deposit rBTC to a schedule
@@ -208,10 +208,11 @@ interface IDcaOutManager {
      * @param scheduleIndex Index of the schedule
      * @param scheduleId Schedule ID for validation
      * @param amount Amount of rBTC to withdraw - 0 to withdraw all
+     * @param to Address to send the rBTC to - 0x0 to send to the caller
      */
-    function withdrawRbtc(uint256 scheduleIndex, bytes32 scheduleId, uint256 amount) external;
+    function withdrawRbtc(uint256 scheduleIndex, bytes32 scheduleId, uint256 amount, address payable to) external;
 
-    // Execution (called by swapper)
+    /// Execution (called by swapper) ///
 
     /**
      * @notice Gas-optimized trusted single sale (assumes well-formed inputs)
@@ -235,7 +236,7 @@ interface IDcaOutManager {
         uint256 totalRbtcToSpend
     ) external;
 
-    // Owner functions
+    /// Owner functions ///
     /**
      * @notice Set minimum sale period
      * @param minPeriod Minimum time between sales
@@ -264,7 +265,6 @@ interface IDcaOutManager {
                                 GETTERS
     //////////////////////////////////////////////////////////////*/
 
-    // Getters
     /**
      * @notice Get all schedules for a user
      * @param user User address
