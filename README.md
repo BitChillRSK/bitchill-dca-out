@@ -80,11 +80,16 @@ forge install
 forge build
 ```
 
+**Makefile Alternative**: You can also run `make help` to see all available commands.
+
 ### Running Tests
+
+**Makefile Alternative**: For convenience, you can use `make test`, `make test-mainnet`, or `make test-testnet` instead of the commands below.
 
 ```bash
 # Run all tests
 forge test
+# Or use: make test
 
 # Run with verbosity
 forge test -vvv
@@ -94,6 +99,12 @@ forge test --match-test test_CreateSchedule -vvv
 
 # Generate gas report
 forge test --gas-report
+
+# Run fork tests against RSK mainnet (requires MAINNET_RPC_URL)
+make test-mainnet
+
+# Run fork tests against RSK testnet (requires TESTNET_RPC_URL)
+make test-testnet
 ```
 
 ### Deployment
@@ -153,9 +164,12 @@ forge script script/DeployDcaOut.s.sol:DeployDcaOut \
 
 #### Deployment Commands
 
+**Makefile Alternative**: For convenience, you can use `make deploy-local`, `make deploy-testnet`, `make deploy-mainnet`, or `make deploy-seed-testnet` instead of the commands below.
+
 ```bash
 # Deploy to local Anvil
 forge script script/DeployDcaOut.s.sol:DeployDcaOut --rpc-url http://localhost:8545 --broadcast
+# Or use: make deploy-local
 
 # Deploy to Rootstock Testnet
 REAL_DEPLOYMENT=true \
@@ -167,6 +181,7 @@ forge script script/DeployDcaOut.s.sol \
   --verifier blockscout \
   --verifier-url $BLOCKSCOUT_API_URL \
   --legacy
+# Or use: make deploy-testnet
 
 # Deploy to Rootstock Mainnet
 REAL_DEPLOYMENT=true \
@@ -178,6 +193,7 @@ forge script script/DeployDcaOut.s.sol \
   --verifier blockscout \
   --verifier-url $BLOCKSCOUT_API_URL \
   --legacy
+# Or use: make deploy-mainnet
 
 # Deploy to Rootstock Testnet and seed test schedules
 # ⚠️ Quick testing method - uses plain text private keys from .env
@@ -191,9 +207,10 @@ forge script script/DeployAndSeedSchedules.s.sol \
   --verifier blockscout \
   --verifier-url $BLOCKSCOUT_API_URL \
   --legacy
+# Or use: make deploy-seed-testnet
 
 # Reattempt verification if failed
-forge verify-contract --verifier blockscout --verifier-url $BLOCKSCOUT_API_URL <ADDRESS> src/DcaOutManager.sol:DcaOutManager --chain <CHAIN> 
+forge verify-contract --verifier blockscout --verifier-url $BLOCKSCOUT_API_URL <ADDRESS> src/DcaOutManager.sol:DcaOutManager --chain <CHAIN>
 ```
  
 
