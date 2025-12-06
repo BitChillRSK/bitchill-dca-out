@@ -27,11 +27,10 @@ uint256 constant ANVIL_CHAIN_ID = 31337;
 uint256 constant RSK_MAINNET_CHAIN_ID = 30;
 uint256 constant RSK_TESTNET_CHAIN_ID = 31;
 
-
 // Default configurations
 uint256 constant DEFAULT_AMOUNT_OUT_MINIMUM_PERCENT = 0.995 ether; // 99.5% -> 0.5% slippage
 uint256 constant DEFAULT_AMOUNT_OUT_MINIMUM_SAFETY_CHECK = 0.95 ether; // 95%
-uint256 constant MAX_SLIPPAGE_PERCENT = 1 ether - DEFAULT_AMOUNT_OUT_MINIMUM_PERCENT; 
+uint256 constant MAX_SLIPPAGE_PERCENT = 1 ether - DEFAULT_AMOUNT_OUT_MINIMUM_PERCENT;
 
 /*//////////////////////////////////////////////////////////////
                         TESTS CONSTANTS

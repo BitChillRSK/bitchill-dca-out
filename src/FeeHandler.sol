@@ -146,16 +146,13 @@ abstract contract FeeHandler is IFeeHandler, Ownable {
 
     /**
      * @notice Calculate fee based on the DOC amount minted
-     * @dev Uses the fee settings stored in the contract. 
+     * @dev Uses the fee settings stored in the contract.
      * Called only by sellRbtc where there's no need to load feeSettings first for gas efficiency.
      * @param docAmount The amount of DOC minted
      * @return The fee amount to be collected
      */
     function _calculateFee(uint256 docAmount) internal view returns (uint256) {
-        return _calculateFeeWithParams(
-            docAmount,
-            _feeSettings()
-        );
+        return _calculateFeeWithParams(docAmount, _feeSettings());
     }
 
     /**
@@ -168,7 +165,11 @@ abstract contract FeeHandler is IFeeHandler, Ownable {
      * @param feeSettings The fee settings
      * @return The fee amount to be collected
      */
-    function _calculateFeeWithParams(uint256 docAmount, FeeSettings memory feeSettings) internal pure returns (uint256) {
+    function _calculateFeeWithParams(uint256 docAmount, FeeSettings memory feeSettings)
+        internal
+        pure
+        returns (uint256)
+    {
         // If flat rate or amount is above upper bound, apply minimum fee
         if (feeSettings.minFeeRate == feeSettings.maxFeeRate || docAmount >= feeSettings.feePurchaseUpperBound) {
             return docAmount * feeSettings.minFeeRate / FEE_PERCENTAGE_DIVISOR;
@@ -184,7 +185,7 @@ abstract contract FeeHandler is IFeeHandler, Ownable {
         unchecked {
             feeRate = feeSettings.maxFeeRate
                 - ((docAmount - feeSettings.feePurchaseLowerBound) * (feeSettings.maxFeeRate - feeSettings.minFeeRate))
-                    / (feeSettings.feePurchaseUpperBound - feeSettings.feePurchaseLowerBound);
+                / (feeSettings.feePurchaseUpperBound - feeSettings.feePurchaseLowerBound);
         }
         return docAmount * feeRate / FEE_PERCENTAGE_DIVISOR;
     }
@@ -218,7 +219,9 @@ abstract contract FeeHandler is IFeeHandler, Ownable {
      * @param feePurchaseUpperBound The upper bound for fee calculation
      */
     function _validateBounds(uint256 feePurchaseLowerBound, uint256 feePurchaseUpperBound) internal pure {
-        if (feePurchaseLowerBound >= feePurchaseUpperBound) revert FeeHandler__InvalidBounds(feePurchaseLowerBound, feePurchaseUpperBound);
+        if (feePurchaseLowerBound >= feePurchaseUpperBound) {
+            revert FeeHandler__InvalidBounds(feePurchaseLowerBound, feePurchaseUpperBound);
+        }
     }
 
     /**

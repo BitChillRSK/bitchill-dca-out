@@ -37,7 +37,7 @@ contract HelperConfig is Script {
     address public mockDocToken;
     address public mockMocProxy;
     address public mockMocOracle;
-    
+
     // Real oracle addresses for fork testing
     address constant MOC_ORACLE_MAINNET = 0xe2927A0620b82A66D67F678FC9b826B0E01B1bFD;
     address constant MOC_ORACLE_TESTNET = 0xbffBD993FF1d229B0FfE55668F2009d20d4F7C5f;
@@ -134,8 +134,8 @@ contract HelperConfig is Script {
             docTokenAddress: mockDocToken,
             mocProxyAddress: mockMocProxy,
             mocOracleAddress: mockMocOracle,
-            feeCollector: makeAddr(FEE_COLLECTOR_STRING), 
-            owner: makeAddr(OWNER_STRING), 
+            feeCollector: makeAddr(FEE_COLLECTOR_STRING),
+            owner: makeAddr(OWNER_STRING),
             swapper: makeAddr(SWAPPER_STRING)
         });
     }

@@ -11,7 +11,6 @@ import "../Constants.sol";
  * @notice Test suite for DCA Out Manager getter functions
  */
 contract GetterTest is DcaOutTestBase {
-
     function setUp() public override {
         super.setUp();
     }
@@ -99,7 +98,8 @@ contract GetterTest is DcaOutTestBase {
         IDcaOutManager.DcaOutSchedule memory schedule = dcaOutManager.getSchedule(user, 0);
         assertEq(schedule.rbtcSaleAmount, SALE_AMOUNT, "Wrong rBTC amount");
         assertEq(schedule.salePeriod, SALE_PERIOD, "Wrong period");
-        assertEq(schedule.rbtcBalance, DEPOSIT_AMOUNT, "Should have initial deposit");    }
+        assertEq(schedule.rbtcBalance, DEPOSIT_AMOUNT, "Should have initial deposit");
+    }
 
     function testgetScheduleRbtcBalance() public {
         createDcaOutSchedule(user, SALE_AMOUNT, SALE_PERIOD, DEPOSIT_AMOUNT);

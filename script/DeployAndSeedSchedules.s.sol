@@ -21,7 +21,7 @@ contract DeployAndSeedSchedules is Script {
 
     function run() external {
         console2.log("==== DeployAndSeedSchedules.run() ====");
-        if(block.chainid != RSK_TESTNET_CHAIN_ID) {
+        if (block.chainid != RSK_TESTNET_CHAIN_ID) {
             revert("This script is only for Rootstock Testnet");
         }
 
@@ -59,11 +59,7 @@ contract DeployAndSeedSchedules is Script {
         console2.log("==== DeployAndSeedSchedules complete ====");
     }
 
-    function _seedSchedules(
-        DcaOutManager manager,
-        uint256 privateKey,
-        ScheduleConfig[2] memory configs
-    ) internal {
+    function _seedSchedules(DcaOutManager manager, uint256 privateKey, ScheduleConfig[2] memory configs) internal {
         address user = vm.addr(privateKey);
         console2.log("Seeding schedules for:", user);
 

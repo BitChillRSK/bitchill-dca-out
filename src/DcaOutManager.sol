@@ -36,7 +36,7 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
 
     // User schedules: user => array of schedules
     mapping(address => DcaOutSchedule[]) private s_userSchedules;
-    
+
     // User DOC balances (accumulated from swaps)
     mapping(address => uint256) private s_userDocBalances;
 
@@ -61,8 +61,7 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
     /**
      * @param config Protocol configuration (addresses, fee settings, and limits)
      */
-    constructor(IDcaOutManager.ProtocolConfig memory config) FeeHandler(config.feeCollector, config.feeSettings)
-    {
+    constructor(IDcaOutManager.ProtocolConfig memory config) FeeHandler(config.feeCollector, config.feeSettings) {
         i_docToken = IERC20(config.docTokenAddress);
         i_mocProxy = IMocProxy(config.mocProxyAddress);
         s_minSalePeriod = config.minSalePeriod;
@@ -82,16 +81,11 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
      * @dev Uses assembly for gas-optimized schedule ID generation
      *      Validates inputs against protocol limits before storage
      */
-    function createDcaOutSchedule(uint256 rbtcSaleAmount, uint256 salePeriod)
-        external
-        payable
-        override
-        nonReentrant
-    {
+    function createDcaOutSchedule(uint256 rbtcSaleAmount, uint256 salePeriod) external payable override nonReentrant {
         // Validate inputs
         if (msg.value == 0) revert DcaOutManager__DepositAmountCantBeZero();
         _validateSalePeriod(salePeriod);
-        
+
         // Validate sale amount against balance (similar to DcaManager validation)
         _validateSaleAmount(rbtcSaleAmount, msg.value);
 
@@ -128,19 +122,19 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         // Store schedule
         schedules.push(newSchedule);
 
-        emit DcaOutManager__ScheduleCreated(msg.sender, rbtcSaleAmount, salePeriod, scheduleIndex, scheduleId, msg.value);
+        emit DcaOutManager__ScheduleCreated(
+            msg.sender, rbtcSaleAmount, salePeriod, scheduleIndex, scheduleId, msg.value
+        );
     }
 
     /// @inheritdoc IDcaOutManager
-    function updateDcaOutSchedule(
-        uint256 scheduleIndex,
-        bytes32 scheduleId,
-        uint256 rbtcSaleAmount,
-        uint256 salePeriod
-    ) external override payable {
+    function updateDcaOutSchedule(uint256 scheduleIndex, bytes32 scheduleId, uint256 rbtcSaleAmount, uint256 salePeriod)
+        external
+        payable
+        override
+    {
         _validateScheduleIndexAndId(msg.sender, scheduleIndex, scheduleId);
         DcaOutSchedule storage schedule = s_userSchedules[msg.sender][scheduleIndex];
-        
 
         // Update salePeriod if provided
         if (salePeriod > 0) {
@@ -158,16 +152,12 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         }
 
         emit DcaOutManager__ScheduleUpdated(
-            msg.sender, schedule.rbtcSaleAmount, schedule.salePeriod,
-            scheduleIndex, scheduleId, schedule.rbtcBalance
+            msg.sender, schedule.rbtcSaleAmount, schedule.salePeriod, scheduleIndex, scheduleId, schedule.rbtcBalance
         );
     }
 
     /// @inheritdoc IDcaOutManager
-    function setSaleAmount(uint256 scheduleIndex, bytes32 scheduleId, uint256 rbtcSaleAmount)
-        external
-        override
-    {
+    function setSaleAmount(uint256 scheduleIndex, bytes32 scheduleId, uint256 rbtcSaleAmount) external override {
         _validateScheduleIndexAndId(msg.sender, scheduleIndex, scheduleId);
         DcaOutSchedule storage schedule = s_userSchedules[msg.sender][scheduleIndex];
         _validateSaleAmount(rbtcSaleAmount, schedule.rbtcBalance);
@@ -176,10 +166,7 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
     }
 
     /// @inheritdoc IDcaOutManager
-    function setSalePeriod(uint256 scheduleIndex, bytes32 scheduleId, uint256 salePeriod)
-        external
-        override
-    {
+    function setSalePeriod(uint256 scheduleIndex, bytes32 scheduleId, uint256 salePeriod) external override {
         _validateScheduleIndexAndId(msg.sender, scheduleIndex, scheduleId);
         _validateSalePeriod(salePeriod);
         DcaOutSchedule storage schedule = s_userSchedules[msg.sender][scheduleIndex];
@@ -188,10 +175,7 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
     }
 
     /// @inheritdoc IDcaOutManager
-    function pauseSchedule(uint256 scheduleIndex, bytes32 scheduleId)
-        external
-        override
-    {
+    function pauseSchedule(uint256 scheduleIndex, bytes32 scheduleId) external override {
         _validateScheduleIndexAndId(msg.sender, scheduleIndex, scheduleId);
         DcaOutSchedule storage schedule = s_userSchedules[msg.sender][scheduleIndex];
         schedule.paused = true;
@@ -199,10 +183,7 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
     }
 
     /// @inheritdoc IDcaOutManager
-    function unpauseSchedule(uint256 scheduleIndex, bytes32 scheduleId)
-        external
-        override
-    {
+    function unpauseSchedule(uint256 scheduleIndex, bytes32 scheduleId) external override {
         _validateScheduleIndexAndId(msg.sender, scheduleIndex, scheduleId);
         DcaOutSchedule storage schedule = s_userSchedules[msg.sender][scheduleIndex];
         schedule.paused = false;
@@ -210,11 +191,7 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
     }
 
     /// @inheritdoc IDcaOutManager
-    function deleteDcaOutSchedule(uint256 scheduleIndex, bytes32 scheduleId)
-        external
-        override
-        nonReentrant
-        {
+    function deleteDcaOutSchedule(uint256 scheduleIndex, bytes32 scheduleId) external override nonReentrant {
         _validateScheduleIndexAndId(msg.sender, scheduleIndex, scheduleId);
         DcaOutSchedule[] storage schedules = s_userSchedules[msg.sender];
         DcaOutSchedule memory schedule = schedules[scheduleIndex];
@@ -240,16 +217,12 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IDcaOutManager
-    function depositRbtc(uint256 scheduleIndex, bytes32 scheduleId)
-        external
-        payable
-        override
-    {
+    function depositRbtc(uint256 scheduleIndex, bytes32 scheduleId) external payable override {
         _validateScheduleIndexAndId(msg.sender, scheduleIndex, scheduleId);
         if (msg.value == 0) revert DcaOutManager__DepositAmountCantBeZero();
 
         DcaOutSchedule storage schedule = s_userSchedules[msg.sender][scheduleIndex];
-        
+
         // Update balance
         schedule.rbtcBalance += msg.value;
 
@@ -289,11 +262,7 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
      * @inheritdoc IDcaOutManager
      * @dev Skips ID and period validations to minimize gas. Intended for BitChill bot.
      */
-    function sellRbtc(
-        address user,
-        uint256 scheduleIndex,
-        bytes32 scheduleId
-    ) external onlySwapper {
+    function sellRbtc(address user, uint256 scheduleIndex, bytes32 scheduleId) external onlySwapper {
         _validateScheduleIndexAndId(user, scheduleIndex, scheduleId);
         DcaOutSchedule storage schedule = s_userSchedules[user][scheduleIndex];
         _validateScheduleNotPaused(user, schedule.paused, scheduleId);
@@ -306,15 +275,9 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         uint256 feeAmount = _calculateFee(docReceived);
         s_userDocBalances[user] += docReceived - feeAmount;
         _transferFee(i_docToken, feeAmount);
-        emit DcaOutManager__RbtcSold(
-            user,
-            scheduleId,
-            rbtcToSpend,
-            docReceived - feeAmount,
-            docReceived
-        );
+        emit DcaOutManager__RbtcSold(user, scheduleId, rbtcToSpend, docReceived - feeAmount, docReceived);
     }
-    
+
     /// @inheritdoc IDcaOutManager
     function batchSellRbtc(
         address[] calldata users,
@@ -331,20 +294,18 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
 
         for (uint256 i; i < len;) {
             (uint256 saleAmount, uint256 fee) = _processUserSale(
-                users[i],
-                scheduleIndexes[i],
-                scheduleIds[i],
-                totalDocReceived,
-                totalRbtcToSpend,
-                feeSettings
+                users[i], scheduleIndexes[i], scheduleIds[i], totalDocReceived, totalRbtcToSpend, feeSettings
             );
             sumOfSaleAmounts += saleAmount;
             totalFee += fee;
-            unchecked { ++i; }
+            unchecked {
+                ++i;
+            }
         }
 
-        if (sumOfSaleAmounts != totalRbtcToSpend)
+        if (sumOfSaleAmounts != totalRbtcToSpend) {
             revert DcaOutManager__TotalSaleAmountMismatch(sumOfSaleAmounts, totalRbtcToSpend);
+        }
 
         _transferFee(i_docToken, totalFee);
         emit DcaOutManager__RbtcSoldBatch(totalRbtcToSpend, totalDocReceived - totalFee, totalDocReceived, len);
@@ -449,7 +410,9 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
     function _validateSaleAmount(uint256 saleAmount, uint256 rbtcBalance) private view {
         if (saleAmount < s_minSaleAmount) revert DcaOutManager__SaleAmountBelowMinimum(saleAmount, s_minSaleAmount);
         // Sale amount must be at most equal to balance to allow at least one sale
-        if (saleAmount > rbtcBalance) revert DcaOutManager__CannotSetSaleAmountMoreThanBalance(saleAmount, rbtcBalance, rbtcBalance);
+        if (saleAmount > rbtcBalance) {
+            revert DcaOutManager__CannotSetSaleAmountMoreThanBalance(saleAmount, rbtcBalance, rbtcBalance);
+        }
     }
 
     /**
@@ -470,7 +433,11 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         if (scheduleIndex >= s_userSchedules[user].length) {
             revert DcaOutManager__InexistentScheduleIndex(user, scheduleIndex, s_userSchedules[user].length);
         }
-        if (s_userSchedules[user][scheduleIndex].scheduleId != scheduleId) revert DcaOutManager__ScheduleIdAndIndexMismatch(scheduleId, s_userSchedules[user][scheduleIndex].scheduleId);
+        if (s_userSchedules[user][scheduleIndex].scheduleId != scheduleId) {
+            revert DcaOutManager__ScheduleIdAndIndexMismatch(
+                scheduleId, s_userSchedules[user][scheduleIndex].scheduleId
+            );
+        }
     }
 
     /**
@@ -479,16 +446,21 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
      * @param salePeriod The sale period
      * @return currentSaleTimestamp The timestamp of the current sale
      */
-    function _validatePeriodElapsed(uint256 lastSaleTimestamp, uint256 salePeriod) private view returns (uint256 currentSaleTimestamp) {
+    function _validatePeriodElapsed(uint256 lastSaleTimestamp, uint256 salePeriod)
+        private
+        view
+        returns (uint256 currentSaleTimestamp)
+    {
         if (lastSaleTimestamp != 0 && block.timestamp < lastSaleTimestamp + salePeriod) {
-            revert DcaOutManager__SalePeriodNotElapsed(lastSaleTimestamp, lastSaleTimestamp + salePeriod, block.timestamp);
+            revert DcaOutManager__SalePeriodNotElapsed(
+                lastSaleTimestamp, lastSaleTimestamp + salePeriod, block.timestamp
+            );
         }
         // Calculate the number of periods elapsed since the last sale so lastSaleTimestamp is consistent even if the schedule is paused and resumed
         uint256 periodsElapsed = (block.timestamp - lastSaleTimestamp) / salePeriod;
         unchecked {
-            currentSaleTimestamp = lastSaleTimestamp == 0
-                ? block.timestamp
-                : lastSaleTimestamp + periodsElapsed * salePeriod;
+            currentSaleTimestamp =
+                lastSaleTimestamp == 0 ? block.timestamp : lastSaleTimestamp + periodsElapsed * salePeriod;
         }
     }
 
@@ -514,15 +486,16 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         uint256 docBalanceBefore = i_docToken.balanceOf(address(this));
 
         // Calculate the rBTC amount that will be used to mint DOC (accounting for MoC commission)
-        uint256 btcToMintDoc = Math.mulDiv(rbtcSaleAmount, PRECISION_FACTOR, PRECISION_FACTOR + s_mocCommission, Math.Rounding.Up);
-        
+        uint256 btcToMintDoc =
+            Math.mulDiv(rbtcSaleAmount, PRECISION_FACTOR, PRECISION_FACTOR + s_mocCommission, Math.Rounding.Up);
+
         // Call MoC to mint DOC (payable function)
         // If change is returned, receive() will revert, indicating commission rate mismatch
         try i_mocProxy.mintDoc{value: rbtcSaleAmount}(btcToMintDoc) {
             docReceived = i_docToken.balanceOf(address(this)) - docBalanceBefore;
         } catch {
             revert DcaOutManager__DocMintFailed(rbtcSaleAmount);
-        } 
+        }
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -550,12 +523,7 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
     }
 
     /// @inheritdoc IDcaOutManager
-    function getSchedule(address user, uint256 scheduleIndex)
-        public
-        view
-        override
-        returns (DcaOutSchedule memory)
-    {
+    function getSchedule(address user, uint256 scheduleIndex) public view override returns (DcaOutSchedule memory) {
         return s_userSchedules[user][scheduleIndex];
     }
 
@@ -565,12 +533,7 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
     }
 
     /// @inheritdoc IDcaOutManager
-    function getScheduleRbtcBalance(address user, uint256 scheduleIndex)
-        public
-        view
-        override
-        returns (uint256)
-    {
+    function getScheduleRbtcBalance(address user, uint256 scheduleIndex) public view override returns (uint256) {
         return s_userSchedules[user][scheduleIndex].rbtcBalance;
     }
 
@@ -580,12 +543,7 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
     }
 
     /// @inheritdoc IDcaOutManager
-    function getScheduleSaleAmount(address user, uint256 scheduleIndex)
-        public
-        view
-        override
-        returns (uint256)
-    {
+    function getScheduleSaleAmount(address user, uint256 scheduleIndex) public view override returns (uint256) {
         return s_userSchedules[user][scheduleIndex].rbtcSaleAmount;
     }
 
@@ -595,12 +553,7 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
     }
 
     /// @inheritdoc IDcaOutManager
-    function getScheduleSalePeriod(address user, uint256 scheduleIndex)
-        public
-        view
-        override
-        returns (uint256)
-    {
+    function getScheduleSalePeriod(address user, uint256 scheduleIndex) public view override returns (uint256) {
         return s_userSchedules[user][scheduleIndex].salePeriod;
     }
 
@@ -610,12 +563,7 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
     }
 
     /// @inheritdoc IDcaOutManager
-    function getScheduleId(address user, uint256 scheduleIndex)
-        public
-        view
-        override
-        returns (bytes32)
-    {
+    function getScheduleId(address user, uint256 scheduleIndex) public view override returns (bytes32) {
         return s_userSchedules[user][scheduleIndex].scheduleId;
     }
 
@@ -673,7 +621,7 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
     /*//////////////////////////////////////////////////////////////
                                 RECEIVE
     //////////////////////////////////////////////////////////////*/
-    
+
     /**
      * @notice Allow contract to receive rBTC only from MoC proxy
      * @dev Reverts if any rBTC is received, as this indicates MoC returned change.

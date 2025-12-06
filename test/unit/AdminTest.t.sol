@@ -10,7 +10,6 @@ import "../Constants.sol";
  * @notice Test suite for DCA Out Manager owner functions
  */
 contract OnlyOwnerTest is DcaOutTestBase {
-
     function setUp() public override {
         super.setUp();
     }
@@ -21,27 +20,27 @@ contract OnlyOwnerTest is DcaOutTestBase {
 
     function testGrantSwapperRole() public {
         address newSwapper = makeAddr("newSwapper");
-        
+
         vm.expectEmit(true, true, true, true);
         emit DcaOutManager__SwapperSet(newSwapper);
         vm.prank(owner);
         dcaOutManager.grantSwapperRole(newSwapper);
-        
+
         // Verify the role was granted
         assertTrue(dcaOutManager.hasRole(dcaOutManager.SWAPPER_ROLE(), newSwapper), "New swapper should have role");
     }
 
     function testRevokeSwapperRole() public {
         address newSwapper = makeAddr("newSwapper");
-        
+
         // First grant the role
         vm.prank(owner);
         dcaOutManager.grantSwapperRole(newSwapper);
-        
+
         // Then revoke it
         vm.prank(owner);
         dcaOutManager.revokeSwapperRole(newSwapper);
-        
+
         // Verify the role was revoked
         assertFalse(dcaOutManager.hasRole(dcaOutManager.SWAPPER_ROLE(), newSwapper), "Swapper should not have role");
     }
@@ -88,7 +87,7 @@ contract OnlyOwnerTest is DcaOutTestBase {
         vm.expectEmit(true, true, true, true);
         emit DcaOutManager__MinSaleAmountSet(newMinSaleAmount);
         dcaOutManager.setMinSaleAmount(newMinSaleAmount);
-        
+
         assertEq(dcaOutManager.getMinSaleAmount(), newMinSaleAmount, "Min sale amount should be updated");
     }
 
@@ -106,7 +105,7 @@ contract OnlyOwnerTest is DcaOutTestBase {
         dcaOutManager.setMocCommission(newCommission);
         assertEq(dcaOutManager.getMocCommission(), newCommission, "MoC commission should be updated");
     }
- 
+
     function testCannotSetMocCommissionIfNotOwner() public {
         vm.prank(user);
         vm.expectRevert("Ownable: caller is not the owner");
