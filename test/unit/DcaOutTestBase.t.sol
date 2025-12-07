@@ -51,42 +51,42 @@ contract DcaOutTestBase is Test {
     // DcaOutManager
     event DcaOutManager__ScheduleCreated(
         address indexed user,
-        uint256 indexed rbtcSaleAmount,
-        uint256 indexed salePeriod,
+        bytes32 indexed scheduleId, 
         uint256 scheduleIndex,
-        bytes32 scheduleId,
+        uint256 rbtcSaleAmount,
+        uint256 salePeriod,
         uint256 rbtcDepositAmount
     );
     event DcaOutManager__ScheduleUpdated(
         address indexed user,
-        uint256 indexed rbtcSaleAmount,
-        uint256 indexed salePeriod,
+        bytes32 indexed scheduleId,
         uint256 scheduleIndex,
-        bytes32 scheduleId,
+        uint256 rbtcSaleAmount,
+        uint256 salePeriod,
         uint256 rbtcBalance
     );
     event DcaOutManager__ScheduleDeleted(
-        address indexed user, uint256 indexed refundedAmount, bytes32 indexed scheduleId, uint256 scheduleIndex
+        address indexed user, bytes32 indexed scheduleId, uint256 scheduleIndex, uint256 refundedAmount
     );
     event DcaOutManager__RbtcDeposited(
-        address indexed user, uint256 indexed amount, bytes32 indexed scheduleId, uint256 scheduleIndex
+        address indexed user, bytes32 indexed scheduleId, uint256 scheduleIndex, uint256 amount
     );
     event DcaOutManager__RbtcWithdrawn(
-        address indexed user, uint256 indexed amount, bytes32 indexed scheduleId, uint256 scheduleIndex
+        address indexed owner, address indexed to, bytes32 indexed scheduleId, uint256 scheduleIndex, uint256 amount
     );
     event DcaOutManager__DocWithdrawn(address user, uint256 amount);
     event DcaOutManager__RbtcSold(
         address indexed user,
         bytes32 indexed scheduleId,
-        uint256 indexed rbtcSaleAmount, // established in the schedule
+        uint256 rbtcSaleAmount,
         uint256 docReceivedAfterFee,
         uint256 docReceived
     );
 
     event DcaOutManager__RbtcSoldBatch(
-        uint256 indexed totalRbtcSaleAmount,
-        uint256 indexed totalDocReceivedAfterFee,
-        uint256 indexed totalDocReceived,
+        uint256 totalRbtcSaleAmount,
+        uint256 totalDocReceivedAfterFee,
+        uint256 totalDocReceived,
         uint256 usersCount
     );
     event DcaOutManager__SwapperSet(address indexed swapper);
@@ -95,9 +95,9 @@ contract DcaOutTestBase is Test {
     event DcaOutManager__MinSaleAmountSet(uint256 indexed minSaleAmount);
     event DcaOutManager__MocCommissionSet(uint256 indexed mocCommission);
     event DcaOutManager__SaleAmountSet(
-        address indexed user, bytes32 indexed scheduleId, uint256 indexed rbtcSaleAmount
+        address indexed user, bytes32 indexed scheduleId, uint256 rbtcSaleAmount
     );
-    event DcaOutManager__SalePeriodSet(address indexed user, bytes32 indexed scheduleId, uint256 indexed salePeriod);
+    event DcaOutManager__SalePeriodSet(address indexed user, bytes32 indexed scheduleId, uint256 salePeriod);
 
     /*//////////////////////////////////////////////////////////////
                             SETUP FUNCTIONS
@@ -189,7 +189,7 @@ contract DcaOutTestBase is Test {
 
         vm.expectEmit(true, true, true, true);
         emit DcaOutManager__ScheduleCreated(
-            userAddress, rbtcSaleAmount, salePeriod, scheduleIndex, scheduleId, initialDeposit
+            userAddress, scheduleId, scheduleIndex, rbtcSaleAmount, salePeriod, initialDeposit
         );
         vm.prank(userAddress);
         dcaOutManager.createDcaOutSchedule{value: initialDeposit}(rbtcSaleAmount, salePeriod);
@@ -331,7 +331,7 @@ contract DcaOutTestBase is Test {
 
         // Check event emission
         vm.expectEmit(true, true, true, true);
-        emit DcaOutManager__RbtcDeposited(userAddress, amount, scheduleId, scheduleIndex);
+        emit DcaOutManager__RbtcDeposited(userAddress, scheduleId, scheduleIndex, amount);
         vm.prank(userAddress);
         dcaOutManager.depositRbtc{value: amount}(scheduleIndex, scheduleId);
 
@@ -360,7 +360,7 @@ contract DcaOutTestBase is Test {
 
         // Check event emission
         vm.expectEmit(true, true, true, true);
-        emit DcaOutManager__RbtcWithdrawn(to, expectedWithdrawal, scheduleId, scheduleIndex);
+        emit DcaOutManager__RbtcWithdrawn(userAddress, to, scheduleId, scheduleIndex, expectedWithdrawal);
         vm.prank(userAddress);
         dcaOutManager.withdrawRbtc(scheduleIndex, scheduleId, amount, to);
 
