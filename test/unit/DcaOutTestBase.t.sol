@@ -51,7 +51,7 @@ contract DcaOutTestBase is Test {
     // DcaOutManager
     event DcaOutManager__ScheduleCreated(
         address indexed user,
-        bytes32 indexed scheduleId, 
+        bytes32 indexed scheduleId,
         uint256 scheduleIndex,
         uint256 rbtcSaleAmount,
         uint256 salePeriod,
@@ -84,19 +84,14 @@ contract DcaOutTestBase is Test {
     );
 
     event DcaOutManager__RbtcSoldBatch(
-        uint256 totalRbtcSaleAmount,
-        uint256 totalDocReceivedAfterFee,
-        uint256 totalDocReceived,
-        uint256 usersCount
+        uint256 totalRbtcSaleAmount, uint256 totalDocReceivedAfterFee, uint256 totalDocReceived, uint256 usersCount
     );
     event DcaOutManager__SwapperSet(address indexed swapper);
     event DcaOutManager__MinSalePeriodSet(uint256 indexed minSalePeriod);
     event DcaOutManager__MaxSchedulesPerUserSet(uint256 indexed maxSchedules);
     event DcaOutManager__MinSaleAmountSet(uint256 indexed minSaleAmount);
     event DcaOutManager__MocCommissionSet(uint256 indexed mocCommission);
-    event DcaOutManager__SaleAmountSet(
-        address indexed user, bytes32 indexed scheduleId, uint256 rbtcSaleAmount
-    );
+    event DcaOutManager__SaleAmountSet(address indexed user, bytes32 indexed scheduleId, uint256 rbtcSaleAmount);
     event DcaOutManager__SalePeriodSet(address indexed user, bytes32 indexed scheduleId, uint256 salePeriod);
 
     /*//////////////////////////////////////////////////////////////

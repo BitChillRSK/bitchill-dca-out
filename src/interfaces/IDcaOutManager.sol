@@ -73,20 +73,13 @@ interface IDcaOutManager {
     );
 
     event DcaOutManager__RbtcSoldBatch(
-        uint256 totalRbtcSaleAmount,
-        uint256 totalDocReceivedAfterFee,
-        uint256 totalDocReceived,
-        uint256 usersCount
+        uint256 totalRbtcSaleAmount, uint256 totalDocReceivedAfterFee, uint256 totalDocReceived, uint256 usersCount
     );
 
     event DcaOutManager__DocWithdrawn(address indexed user, uint256 amount);
 
     event DcaOutManager__RbtcWithdrawn(
-        address indexed owner,
-        address indexed to,
-        bytes32 indexed scheduleId,
-        uint256 scheduleIndex,
-        uint256 amount
+        address indexed owner, address indexed to, bytes32 indexed scheduleId, uint256 scheduleIndex, uint256 amount
     );
 
     event DcaOutManager__SwapperSet(address indexed swapper);
@@ -94,9 +87,7 @@ interface IDcaOutManager {
     event DcaOutManager__MaxSchedulesPerUserSet(uint256 indexed maxSchedules);
     event DcaOutManager__MinSaleAmountSet(uint256 indexed minSaleAmount);
     event DcaOutManager__MocCommissionSet(uint256 indexed mocCommission);
-    event DcaOutManager__SaleAmountSet(
-        address indexed user, bytes32 indexed scheduleId, uint256 rbtcSaleAmount
-    );
+    event DcaOutManager__SaleAmountSet(address indexed user, bytes32 indexed scheduleId, uint256 rbtcSaleAmount);
     event DcaOutManager__SalePeriodSet(address indexed user, bytes32 indexed scheduleId, uint256 salePeriod);
     event DcaOutManager__SchedulePaused(address indexed user, bytes32 indexed scheduleId);
     event DcaOutManager__ScheduleUnpaused(address indexed user, bytes32 indexed scheduleId);
