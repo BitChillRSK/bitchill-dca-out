@@ -341,14 +341,12 @@ contract DcaOutTestBase is Test {
      * @param scheduleIndex The schedule index
      * @param scheduleId The schedule ID
      * @param amount Amount to withdraw (0 for all)
-     * @param to Address to send the rBTC to - 0x0 to send to the caller
      */
     function withdrawRbtc(
         address userAddress,
         uint256 scheduleIndex,
         bytes32 scheduleId,
-        uint256 amount,
-        address payable to
+        uint256 amount
     ) internal {
         uint256 balanceBefore = dcaOutManager.getScheduleRbtcBalance(userAddress, scheduleIndex);
         uint256 expectedWithdrawal = (amount == 0 || amount > balanceBefore) ? balanceBefore : amount;
