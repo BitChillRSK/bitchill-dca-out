@@ -230,11 +230,7 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
     }
 
     /// @inheritdoc IDcaOutManager
-    function withdrawRbtc(uint256 scheduleIndex, bytes32 scheduleId, uint256 amount)
-        external
-        override
-        nonReentrant
-    {
+    function withdrawRbtc(uint256 scheduleIndex, bytes32 scheduleId, uint256 amount) external override nonReentrant {
         _validateScheduleIndexAndId(msg.sender, scheduleIndex, scheduleId);
         uint256 rbtcBalance = s_userSchedules[msg.sender][scheduleIndex].rbtcBalance;
         if (rbtcBalance == 0) revert DcaOutManager__NoRbtcBalance();
