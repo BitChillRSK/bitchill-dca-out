@@ -230,19 +230,19 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
     }
 
     /// @inheritdoc IDcaOutManager
-    function withdrawRbtc(uint256 scheduleIndex, bytes32 scheduleId, uint256 amount, address payable to)
+    function withdrawRbtc(uint256 scheduleIndex, bytes32 scheduleId, uint256 amount)
         external
         override
         nonReentrant
     {
         _validateScheduleIndexAndId(msg.sender, scheduleIndex, scheduleId);
-        if (to == address(0)) to = payable(msg.sender);
-        DcaOutSchedule storage schedule = s_userSchedules[msg.sender][scheduleIndex];
-        if (amount == 0 || amount > schedule.rbtcBalance) amount = schedule.rbtcBalance;
-        schedule.rbtcBalance -= amount;
-        (bool success,) = to.call{value: amount}("");
-        if (!success) revert DcaOutManager__RbtcWithdrawalFailed(to, amount);
-        emit DcaOutManager__RbtcWithdrawn(msg.sender, to, scheduleId, scheduleIndex, amount);
+        uint256 rbtcBalance = s_userSchedules[msg.sender][scheduleIndex].rbtcBalance;
+        if (rbtcBalance == 0) revert DcaOutManager__NoRbtcBalance();
+        if (amount == 0 || amount > rbtcBalance) amount = rbtcBalance;
+        s_userSchedules[msg.sender][scheduleIndex].rbtcBalance -= amount;
+        (bool success,) = msg.sender.call{value: amount}("");
+        if (!success) revert DcaOutManager__RbtcWithdrawalFailed(msg.sender, amount);
+        emit DcaOutManager__RbtcWithdrawn(msg.sender, scheduleId, scheduleIndex, amount);
     }
 
     /// @inheritdoc IDcaOutManager

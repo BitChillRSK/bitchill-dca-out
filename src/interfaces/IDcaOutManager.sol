@@ -79,7 +79,7 @@ interface IDcaOutManager {
     event DcaOutManager__DocWithdrawn(address indexed user, uint256 amount);
 
     event DcaOutManager__RbtcWithdrawn(
-        address indexed owner, address indexed to, bytes32 indexed scheduleId, uint256 scheduleIndex, uint256 amount
+        address indexed user, bytes32 indexed scheduleId, uint256 scheduleIndex, uint256 amount
     );
 
     event DcaOutManager__SwapperSet(address indexed swapper);
@@ -107,7 +107,7 @@ interface IDcaOutManager {
         uint256 lastSaleTimestamp, uint256 nextSaleTimestamp, uint256 currentTime
     );
     error DcaOutManager__DocMintFailed(uint256 rbtcAmount);
-    error DcaOutManager__RbtcWithdrawalFailed(address to, uint256 amount);
+    error DcaOutManager__RbtcWithdrawalFailed(address user, uint256 amount);
     error DcaOutManager__CannotSetSaleAmountMoreThanBalance(
         uint256 saleAmount, uint256 rbtcBalance, uint256 maxSaleAmount
     );
@@ -116,6 +116,7 @@ interface IDcaOutManager {
     error DcaOutManager__TotalSaleAmountMismatch(uint256 totalSaleAmount, uint256 totalRbtcToSpend);
     error DcaOutManager__ScheduleIsPaused(address user, bytes32 scheduleId);
     error DcaOutManager__UnexpectedChangeReturned(uint256 amount);
+    error DcaOutManager__NoRbtcBalance();
 
     /*//////////////////////////////////////////////////////////////
                             EXTERNAL FUNCTIONS
@@ -197,9 +198,8 @@ interface IDcaOutManager {
      * @param scheduleIndex Index of the schedule
      * @param scheduleId Schedule ID for validation
      * @param amount Amount of rBTC to withdraw - 0 to withdraw all
-     * @param to Address to send the rBTC to - 0x0 to send to the caller
      */
-    function withdrawRbtc(uint256 scheduleIndex, bytes32 scheduleId, uint256 amount, address payable to) external;
+    function withdrawRbtc(uint256 scheduleIndex, bytes32 scheduleId, uint256 amount) external;
 
     /// Execution (called by swapper) ///
 

@@ -72,7 +72,7 @@ contract DcaOutTestBase is Test {
         address indexed user, bytes32 indexed scheduleId, uint256 scheduleIndex, uint256 amount
     );
     event DcaOutManager__RbtcWithdrawn(
-        address indexed owner, address indexed to, bytes32 indexed scheduleId, uint256 scheduleIndex, uint256 amount
+        address indexed user, bytes32 indexed scheduleId, uint256 scheduleIndex, uint256 amount
     );
     event DcaOutManager__DocWithdrawn(address user, uint256 amount);
     event DcaOutManager__RbtcSold(
@@ -355,9 +355,9 @@ contract DcaOutTestBase is Test {
 
         // Check event emission
         vm.expectEmit(true, true, true, true);
-        emit DcaOutManager__RbtcWithdrawn(userAddress, to, scheduleId, scheduleIndex, expectedWithdrawal);
+        emit DcaOutManager__RbtcWithdrawn(userAddress, scheduleId, scheduleIndex, expectedWithdrawal);
         vm.prank(userAddress);
-        dcaOutManager.withdrawRbtc(scheduleIndex, scheduleId, amount, to);
+        dcaOutManager.withdrawRbtc(scheduleIndex, scheduleId, amount);
 
         // Verify withdrawal
         uint256 balanceAfter = dcaOutManager.getScheduleRbtcBalance(userAddress, scheduleIndex);
