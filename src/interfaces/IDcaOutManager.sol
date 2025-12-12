@@ -14,12 +14,12 @@ interface IDcaOutManager {
     //////////////////////////////////////////////////////////////*/
 
     struct DcaOutSchedule {
-        uint256 rbtcBalance;       // Current rBTC balance deposited
-        uint256 rbtcSaleAmount;    // Amount of rBTC to sell per period
-        uint256 salePeriod;        // Time between sales (in seconds)
+        uint256 rbtcBalance; // Current rBTC balance deposited
+        uint256 rbtcSaleAmount; // Amount of rBTC to sell per period
+        uint256 salePeriod; // Time between sales (in seconds)
         uint256 lastSaleTimestamp; // Timestamp of last execution
-        bytes32 scheduleId;        // Unique identifier of the schedule
-        bool paused;               // Whether the schedule is paused
+        bytes32 scheduleId; // Unique identifier of the schedule
+        bool paused; // Whether the schedule is paused
     }
 
     struct ProtocolConfig {
@@ -40,58 +40,46 @@ interface IDcaOutManager {
 
     event DcaOutManager__ScheduleCreated(
         address indexed user,
-        uint256 indexed rbtcSaleAmount,
-        uint256 indexed salePeriod,
+        bytes32 indexed scheduleId,
         uint256 scheduleIndex,
-        bytes32 scheduleId,
+        uint256 rbtcSaleAmount,
+        uint256 salePeriod,
         uint256 rbtcDepositAmount
     );
 
     event DcaOutManager__ScheduleUpdated(
         address indexed user,
-        uint256 indexed rbtcSaleAmount,
-        uint256 indexed salePeriod,
+        bytes32 indexed scheduleId,
         uint256 scheduleIndex,
-        bytes32 scheduleId,
+        uint256 rbtcSaleAmount,
+        uint256 salePeriod,
         uint256 rbtcBalance
     );
 
     event DcaOutManager__ScheduleDeleted(
-        address indexed user,
-        uint256 indexed refundedAmount,
-        bytes32 indexed scheduleId,
-        uint256 scheduleIndex
+        address indexed user, bytes32 indexed scheduleId, uint256 scheduleIndex, uint256 refundedAmount
     );
 
     event DcaOutManager__RbtcDeposited(
-        address indexed user,
-        uint256 indexed amount,
-        bytes32 indexed scheduleId,
-        uint256 scheduleIndex
+        address indexed user, bytes32 indexed scheduleId, uint256 scheduleIndex, uint256 amount
     );
 
     event DcaOutManager__RbtcSold(
         address indexed user,
         bytes32 indexed scheduleId,
-        uint256 indexed rbtcSaleAmount, // established in the schedule
+        uint256 rbtcSaleAmount,
         uint256 docReceivedAfterFee,
         uint256 docReceived
     );
 
     event DcaOutManager__RbtcSoldBatch(
-        uint256 indexed totalRbtcSaleAmount,
-        uint256 indexed totalDocReceivedAfterFee,
-        uint256 indexed totalDocReceived,
-        uint256 usersCount
+        uint256 totalRbtcSaleAmount, uint256 totalDocReceivedAfterFee, uint256 totalDocReceived, uint256 usersCount
     );
 
-    event DcaOutManager__DocWithdrawn(address indexed user, uint256 indexed amount);
+    event DcaOutManager__DocWithdrawn(address indexed user, uint256 amount);
 
     event DcaOutManager__RbtcWithdrawn(
-        address indexed user,
-        uint256 indexed amount,
-        bytes32 indexed scheduleId,
-        uint256 scheduleIndex
+        address indexed user, bytes32 indexed scheduleId, uint256 scheduleIndex, uint256 amount
     );
 
     event DcaOutManager__SwapperSet(address indexed swapper);
@@ -99,8 +87,8 @@ interface IDcaOutManager {
     event DcaOutManager__MaxSchedulesPerUserSet(uint256 indexed maxSchedules);
     event DcaOutManager__MinSaleAmountSet(uint256 indexed minSaleAmount);
     event DcaOutManager__MocCommissionSet(uint256 indexed mocCommission);
-    event DcaOutManager__SaleAmountSet(address indexed user, bytes32 indexed scheduleId, uint256 indexed rbtcSaleAmount);
-    event DcaOutManager__SalePeriodSet(address indexed user, bytes32 indexed scheduleId, uint256 indexed salePeriod);
+    event DcaOutManager__SaleAmountSet(address indexed user, bytes32 indexed scheduleId, uint256 rbtcSaleAmount);
+    event DcaOutManager__SalePeriodSet(address indexed user, bytes32 indexed scheduleId, uint256 salePeriod);
     event DcaOutManager__SchedulePaused(address indexed user, bytes32 indexed scheduleId);
     event DcaOutManager__ScheduleUnpaused(address indexed user, bytes32 indexed scheduleId);
 
@@ -115,21 +103,26 @@ interface IDcaOutManager {
     error DcaOutManager__MaxSchedulesReached();
     error DcaOutManager__InexistentScheduleIndex(address user, uint256 scheduleIndex, uint256 scheduleCount);
     error DcaOutManager__ScheduleIdAndIndexMismatch(bytes32 providedId, bytes32 expectedId);
-    error DcaOutManager__SalePeriodNotElapsed(uint256 lastSaleTimestamp, uint256 nextSaleTimestamp, uint256 currentTime);
+    error DcaOutManager__SalePeriodNotElapsed(
+        uint256 lastSaleTimestamp, uint256 nextSaleTimestamp, uint256 currentTime
+    );
     error DcaOutManager__DocMintFailed(uint256 rbtcAmount);
     error DcaOutManager__RbtcWithdrawalFailed(address user, uint256 amount);
-    error DcaOutManager__CannotSetSaleAmountMoreThanBalance(uint256 saleAmount, uint256 rbtcBalance, uint256 maxSaleAmount);
+    error DcaOutManager__CannotSetSaleAmountMoreThanBalance(
+        uint256 saleAmount, uint256 rbtcBalance, uint256 maxSaleAmount
+    );
     error DcaOutManager__UnauthorizedSwapper(address caller);
     error DcaOutManager__NotMoC(address caller);
     error DcaOutManager__TotalSaleAmountMismatch(uint256 totalSaleAmount, uint256 totalRbtcToSpend);
     error DcaOutManager__ScheduleIsPaused(address user, bytes32 scheduleId);
     error DcaOutManager__UnexpectedChangeReturned(uint256 amount);
-    
+    error DcaOutManager__NoRbtcBalance();
+
     /*//////////////////////////////////////////////////////////////
                             EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    // Schedule management
+    /// Schedule management ///
 
     /**
      * @notice Create a new DCA schedule
@@ -145,12 +138,9 @@ interface IDcaOutManager {
      * @param rbtcSaleAmount New rBTC amount per period (0 to skip)
      * @param salePeriod New sale period (0 to skip)
      */
-    function updateDcaOutSchedule(
-        uint256 scheduleIndex,
-        bytes32 scheduleId,
-        uint256 rbtcSaleAmount,
-        uint256 salePeriod
-    ) external payable;
+    function updateDcaOutSchedule(uint256 scheduleIndex, bytes32 scheduleId, uint256 rbtcSaleAmount, uint256 salePeriod)
+        external
+        payable;
 
     /**
      * @notice Set the rBTC sale amount for a schedule
@@ -189,7 +179,7 @@ interface IDcaOutManager {
      */
     function deleteDcaOutSchedule(uint256 scheduleIndex, bytes32 scheduleId) external;
 
-    // Deposit/Withdrawal
+    /// Deposit/Withdrawal ///
 
     /**
      * @notice Deposit rBTC to a schedule
@@ -211,7 +201,7 @@ interface IDcaOutManager {
      */
     function withdrawRbtc(uint256 scheduleIndex, bytes32 scheduleId, uint256 amount) external;
 
-    // Execution (called by swapper)
+    /// Execution (called by swapper) ///
 
     /**
      * @notice Gas-optimized trusted single sale (assumes well-formed inputs)
@@ -235,7 +225,7 @@ interface IDcaOutManager {
         uint256 totalRbtcToSpend
     ) external;
 
-    // Owner functions
+    /// Owner functions ///
     /**
      * @notice Set minimum sale period
      * @param minPeriod Minimum time between sales
@@ -264,7 +254,6 @@ interface IDcaOutManager {
                                 GETTERS
     //////////////////////////////////////////////////////////////*/
 
-    // Getters
     /**
      * @notice Get all schedules for a user
      * @param user User address
@@ -305,7 +294,7 @@ interface IDcaOutManager {
      * @return The schedule details
      */
     function getMySchedule(uint256 scheduleIndex) external view returns (DcaOutSchedule memory);
-    
+
     /**
      * @notice Get rBTC balance for a user's schedule
      * @param user User address

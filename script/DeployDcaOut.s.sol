@@ -53,7 +53,7 @@ contract DeployDcaOut is DeployBase {
         // Choose parameters based on environment
         uint256 minSaleAmount;
         uint256 minSalePeriod;
-        
+
         if (environment == Environment.TESTNET) {
             // Testing parameters for testnet (manual testing with fake money)
             minSaleAmount = MIN_SALE_AMOUNT_TESTNET;
@@ -63,7 +63,11 @@ contract DeployDcaOut is DeployBase {
             // Production parameters for mainnet, local, and fork testing
             minSaleAmount = MIN_SALE_AMOUNT;
             minSalePeriod = MIN_SALE_PERIOD;
-            console2.log("Using PRODUCTION parameters for", environment == Environment.MAINNET ? "mainnet" : environment == Environment.LOCAL ? "local" : "fork", "deployment");
+            console2.log(
+                "Using PRODUCTION parameters for",
+                environment == Environment.MAINNET ? "mainnet" : environment == Environment.LOCAL ? "local" : "fork",
+                "deployment"
+            );
         }
 
         IDcaOutManager.ProtocolConfig memory protocolConfig = IDcaOutManager.ProtocolConfig({
@@ -86,17 +90,17 @@ contract DeployDcaOut is DeployBase {
         // Transfer ownership to config owner
         console2.log("Live network deployment - transferring ownership to owner:", config.owner);
         dcaOutManager.transferOwnership(config.owner);
-        
-        if(tx.origin != config.owner) {
+
+        if (tx.origin != config.owner) {
             // Grant DEFAULT_ADMIN_ROLE to owner for role management
             dcaOutManager.grantRole(dcaOutManager.DEFAULT_ADMIN_ROLE(), config.owner);
             console2.log("DEFAULT_ADMIN_ROLE granted to owner for role management");
-            
+
             // Revoke DEFAULT_ADMIN_ROLE from deployer for maximum security
             dcaOutManager.revokeRole(dcaOutManager.DEFAULT_ADMIN_ROLE(), tx.origin);
             console2.log("DEFAULT_ADMIN_ROLE revoked from deployer for security");
         }
-        
+
         console2.log("Ownership transferred successfully");
 
         vm.stopBroadcast();
@@ -105,6 +109,5 @@ contract DeployDcaOut is DeployBase {
 
         return (dcaOutManager, helperConfig);
     }
-
 }
 

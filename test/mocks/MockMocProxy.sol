@@ -32,7 +32,7 @@ contract MockMocProxy {
         // Subtract the "change" from the rBTC to mint
         // Commission to charge
         uint256 commission = btcToMint * MOC_COMMISSION / PRECISION_FACTOR;
-        uint256 change = msg.value - btcToMint - commission; 
+        uint256 change = msg.value - btcToMint - commission;
         // Calculate DOC to mint using oracle price
         uint256 docToMint = (btcToMint * oraclePrice) / 1e18;
 
@@ -53,7 +53,14 @@ contract MockMocProxy {
     /**
      * @notice Mock minting with vendors (not used but keeping interface)
      */
-    function mintDocVendors(uint256 btcToMint, address /*vendor*/) external payable returns (uint256) {
+    function mintDocVendors(
+        uint256 btcToMint,
+        address /*vendor*/
+    )
+        external
+        payable
+        returns (uint256)
+    {
         return this.mintDoc{value: msg.value}(btcToMint);
     }
 

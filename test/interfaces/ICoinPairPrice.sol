@@ -10,8 +10,8 @@ interface ICoinPairPrice {
     // getOracleOwnerStake: Get the stake stored in the supporters smart-contract
     // prettier-ignore
     struct CoinPairPriceCallbacks {
-        function (address) external view returns (address) getOracleOwnerAddress;
-        function (address) external view returns (uint256) getOracleOwnerStake;
+        function(address) external view returns (address) getOracleOwnerAddress;
+        function(address) external view returns (uint256) getOracleOwnerStake;
     }
 
     /// @notice subscribe an oracle to this coin pair, allowing it to be selected in the next round.

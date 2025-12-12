@@ -21,9 +21,9 @@ interface IFeeHandler {
                                  ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    error FeeHandler__MinFeeRateCannotBeHigherThanMax();
-    error FeeHandler__FeeLowerBoundCAnnotBeHigherThanUpperBound();
-    error FeeHandler__FeeCollectorCannotBeZero();
+    error FeeHandler__InvalidFeeRateLimits(uint256 minFeeRate, uint256 maxFeeRate);
+    error FeeHandler__InvalidBounds(uint256 feePurchaseLowerBound, uint256 feePurchaseUpperBound);
+    error FeeHandler__InvalidFeeCollector();
 
     /*//////////////////////////////////////////////////////////////
                                 STRUCTS
@@ -117,5 +117,11 @@ interface IFeeHandler {
      * @return The fee collector address
      */
     function getFeeCollectorAddress() external view returns (address);
+
+    /**
+     * @notice Get the fee settings (external wrapper for _feeSettings() internal function)
+     * @return The fee settings
+     */
+    function getFeeSettings() external view returns (FeeSettings memory);
 }
 

@@ -35,7 +35,7 @@ abstract contract FeeHandler is IFeeHandler, Ownable {
      * @param feeSettings Initial fee configuration
      */
     constructor(address feeCollector, FeeSettings memory feeSettings) Ownable() {
-        if (feeCollector == address(0)) revert FeeHandler__FeeCollectorCannotBeZero();
+        if (feeCollector == address(0)) revert FeeHandler__InvalidFeeCollector();
         s_feeCollector = feeCollector;
         s_minFeeRate = feeSettings.minFeeRate;
         s_maxFeeRate = feeSettings.maxFeeRate;
@@ -58,10 +58,8 @@ abstract contract FeeHandler is IFeeHandler, Ownable {
         uint256 feePurchaseUpperBound
     ) external override onlyOwner {
         // Validate parameters
-        if (minFeeRate > maxFeeRate) revert FeeHandler__MinFeeRateCannotBeHigherThanMax();
-        if (feePurchaseLowerBound > feePurchaseUpperBound) {
-            revert FeeHandler__FeeLowerBoundCAnnotBeHigherThanUpperBound();
-        }
+        _validateFeeRateLimits(minFeeRate, maxFeeRate);
+        _validateBounds(feePurchaseLowerBound, feePurchaseUpperBound);
 
         if (s_minFeeRate != minFeeRate) setMinFeeRate(minFeeRate);
         if (s_maxFeeRate != maxFeeRate) setMaxFeeRate(maxFeeRate);
@@ -75,31 +73,35 @@ abstract contract FeeHandler is IFeeHandler, Ownable {
 
     /// @inheritdoc IFeeHandler
     function setMinFeeRate(uint256 minFeeRate) public override onlyOwner {
+        _validateFeeRateLimits(minFeeRate, s_maxFeeRate);
         s_minFeeRate = minFeeRate;
         emit FeeHandler__MinFeeRateSet(minFeeRate);
     }
 
     /// @inheritdoc IFeeHandler
     function setMaxFeeRate(uint256 maxFeeRate) public override onlyOwner {
+        _validateFeeRateLimits(s_minFeeRate, maxFeeRate);
         s_maxFeeRate = maxFeeRate;
         emit FeeHandler__MaxFeeRateSet(maxFeeRate);
     }
 
     /// @inheritdoc IFeeHandler
     function setPurchaseLowerBound(uint256 feePurchaseLowerBound) public override onlyOwner {
+        _validateBounds(feePurchaseLowerBound, s_feePurchaseUpperBound);
         s_feePurchaseLowerBound = feePurchaseLowerBound;
         emit FeeHandler__PurchaseLowerBoundSet(feePurchaseLowerBound);
     }
 
     /// @inheritdoc IFeeHandler
     function setPurchaseUpperBound(uint256 feePurchaseUpperBound) public override onlyOwner {
+        _validateBounds(s_feePurchaseLowerBound, feePurchaseUpperBound);
         s_feePurchaseUpperBound = feePurchaseUpperBound;
         emit FeeHandler__PurchaseUpperBoundSet(feePurchaseUpperBound);
     }
 
     /// @inheritdoc IFeeHandler
     function setFeeCollectorAddress(address feeCollector) external override onlyOwner {
-        if (feeCollector == address(0)) revert FeeHandler__FeeCollectorCannotBeZero();
+        if (feeCollector == address(0)) revert FeeHandler__InvalidFeeCollector();
         s_feeCollector = feeCollector;
         emit FeeHandler__FeeCollectorAddressSet(feeCollector);
     }
@@ -133,9 +135,25 @@ abstract contract FeeHandler is IFeeHandler, Ownable {
         return s_feeCollector;
     }
 
+    /// @inheritdoc IFeeHandler
+    function getFeeSettings() external view override returns (FeeSettings memory) {
+        return _feeSettings();
+    }
+
     /*//////////////////////////////////////////////////////////////
                            INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Calculate fee based on the DOC amount minted
+     * @dev Uses the fee settings stored in the contract.
+     * Called only by sellRbtc where there's no need to load feeSettings first for gas efficiency.
+     * @param docAmount The amount of DOC minted
+     * @return The fee amount to be collected
+     */
+    function _calculateFee(uint256 docAmount) internal view returns (uint256) {
+        return _calculateFeeWithParams(docAmount, _feeSettings());
+    }
 
     /**
      * @notice Calculate fee based on the DOC amount minted
@@ -144,58 +162,32 @@ abstract contract FeeHandler is IFeeHandler, Ownable {
      *      - Amounts >= upper bound: min fee rate
      *      - Amounts in between: linear interpolation
      * @param docAmount The amount of DOC minted
+     * @param feeSettings The fee settings
      * @return The fee amount to be collected
      */
-    function _calculateFee(uint256 docAmount) internal view returns (uint256) {
-        uint256 minFeeRate = s_minFeeRate;
-        uint256 maxFeeRate = s_maxFeeRate;
-        uint256 feePurchaseUpperBound = s_feePurchaseUpperBound;
-
+    function _calculateFeeWithParams(uint256 docAmount, FeeSettings memory feeSettings)
+        internal
+        pure
+        returns (uint256)
+    {
         // If flat rate or amount is above upper bound, apply minimum fee
-        if (minFeeRate == maxFeeRate || docAmount >= feePurchaseUpperBound) {
-            return docAmount * minFeeRate / FEE_PERCENTAGE_DIVISOR;
+        if (feeSettings.minFeeRate == feeSettings.maxFeeRate || docAmount >= feeSettings.feePurchaseUpperBound) {
+            return docAmount * feeSettings.minFeeRate / FEE_PERCENTAGE_DIVISOR;
         }
 
-        uint256 feePurchaseLowerBound = s_feePurchaseLowerBound;
         // If amount is below lower bound, apply maximum fee
-        if (docAmount <= feePurchaseLowerBound) {
-            return docAmount * maxFeeRate / FEE_PERCENTAGE_DIVISOR;
+        if (docAmount <= feeSettings.feePurchaseLowerBound) {
+            return docAmount * feeSettings.maxFeeRate / FEE_PERCENTAGE_DIVISOR;
         }
 
         // Calculate interpolated fee rate for amounts in between
         uint256 feeRate;
         unchecked {
-            feeRate = maxFeeRate
-                - ((docAmount - feePurchaseLowerBound) * (maxFeeRate - minFeeRate))
-                    / (feePurchaseUpperBound - feePurchaseLowerBound);
+            feeRate = feeSettings.maxFeeRate
+                - ((docAmount - feeSettings.feePurchaseLowerBound) * (feeSettings.maxFeeRate - feeSettings.minFeeRate))
+                / (feeSettings.feePurchaseUpperBound - feeSettings.feePurchaseLowerBound);
         }
         return docAmount * feeRate / FEE_PERCENTAGE_DIVISOR;
-    }
-
-    /**
-     * @notice Calculate fees and net amounts for a batch of DOC amounts
-     * @param docAmounts Array of DOC amounts minted
-     * @return aggregatedFee Total fee to be collected
-     * @return netAmountsToUser Array of net amounts after fees for each user
-     * @return totalNetAmount Total net amount distributed to users
-     */
-    function _calculateFeeAndNetAmounts(uint256[] memory docAmounts)
-        internal
-        view
-        returns (uint256 aggregatedFee, uint256[] memory netAmountsToUser, uint256 totalNetAmount)
-    {
-        uint256 len = docAmounts.length;
-        netAmountsToUser = new uint256[](len);
-
-        for (uint256 i; i < len; ++i) {
-            uint256 amount = docAmounts[i];
-            uint256 fee = _calculateFee(amount);
-            aggregatedFee += fee;
-
-            uint256 net = amount - fee;
-            netAmountsToUser[i] = net;
-            totalNetAmount += net;
-        }
     }
 
     /**
@@ -206,5 +198,39 @@ abstract contract FeeHandler is IFeeHandler, Ownable {
     function _transferFee(IERC20 token, uint256 fee) internal {
         token.safeTransfer(s_feeCollector, fee);
     }
-}
 
+    /**
+     * @notice Get the fee settings
+     * @return The fee settings
+     */
+    function _feeSettings() internal view returns (FeeSettings memory) {
+        return FeeSettings({
+            minFeeRate: s_minFeeRate,
+            maxFeeRate: s_maxFeeRate,
+            feePurchaseLowerBound: s_feePurchaseLowerBound,
+            feePurchaseUpperBound: s_feePurchaseUpperBound
+        });
+    }
+
+    /**
+     * @notice Validate the bounds
+     * @dev Reverts if the lower bound is greater than or equal to the upper bound
+     * @param feePurchaseLowerBound The lower bound for fee calculation
+     * @param feePurchaseUpperBound The upper bound for fee calculation
+     */
+    function _validateBounds(uint256 feePurchaseLowerBound, uint256 feePurchaseUpperBound) internal pure {
+        if (feePurchaseLowerBound >= feePurchaseUpperBound) {
+            revert FeeHandler__InvalidBounds(feePurchaseLowerBound, feePurchaseUpperBound);
+        }
+    }
+
+    /**
+     * @notice Validate the fee rate limits
+     * @dev Reverts if the minimum fee rate is greater than the maximum fee rate
+     * @param minFeeRate The minimum fee rate
+     * @param maxFeeRate The maximum fee rate
+     */
+    function _validateFeeRateLimits(uint256 minFeeRate, uint256 maxFeeRate) internal pure {
+        if (minFeeRate > maxFeeRate) revert FeeHandler__InvalidFeeRateLimits(minFeeRate, maxFeeRate);
+    }
+}

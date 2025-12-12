@@ -11,7 +11,6 @@ import "../Constants.sol";
  * @notice Test suite for DCA Out Manager withdrawal functions
  */
 contract WithdrawalTest is DcaOutTestBase {
-
     function setUp() public override {
         super.setUp();
     }
@@ -30,7 +29,7 @@ contract WithdrawalTest is DcaOutTestBase {
         uint256 docBalance = dcaOutManager.getUserDocBalance(user);
         assertGe(docBalance, 0, "User should have DOC balance");
         // vm.expectEmit(true, true, true, true);
-        // emit DcaOutManager__DocWithdrawn(user, docBalance); 
+        // emit DcaOutManager__DocWithdrawn(user, docBalance);
         // Transfer event gets emitted first so this expectEmit fails
         vm.prank(user);
         dcaOutManager.withdrawDoc();
