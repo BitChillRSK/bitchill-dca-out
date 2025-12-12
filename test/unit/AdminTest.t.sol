@@ -62,9 +62,7 @@ contract OnlyOwnerTest is DcaOutTestBase {
         vm.prank(owner);
         vm.expectRevert(
             abi.encodeWithSelector(
-                IDcaOutManager.DcaOutManager__MinSalePeriodBelowLowerBound.selector,
-                1 days - 1,
-                1 days
+                IDcaOutManager.DcaOutManager__MinSalePeriodBelowLowerBound.selector, 1 days - 1, 1 days
             )
         );
         dcaOutManager.setMinSalePeriod(1 days - 1);

@@ -70,7 +70,10 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
     /**
      * @param config Protocol configuration (addresses, fee settings, and limits)
      */
-    constructor(IDcaOutManager.ProtocolConfig memory config) FeeHandler(config.feeCollector, config.feeSettings) validateMinSalePeriod(config.minSalePeriod) {
+    constructor(IDcaOutManager.ProtocolConfig memory config)
+        FeeHandler(config.feeCollector, config.feeSettings)
+        validateMinSalePeriod(config.minSalePeriod)
+    {
         i_docToken = IERC20(config.docTokenAddress);
         i_mocProxy = IMocProxy(config.mocProxyAddress);
         s_minSalePeriod = config.minSalePeriod;
@@ -446,7 +449,7 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
     }
 
     /**
-     * @notice Validate that the period has elapsed since the last sale 
+     * @notice Validate that the period has elapsed since the last sale
      * @notice The period is considered to have elapsed if the next allowed sale is within the current day (UTC)
      * @param lastSaleTimestamp The timestamp of the last sale
      * @param salePeriod The sale period
