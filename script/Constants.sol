@@ -7,11 +7,10 @@ uint256 constant PRECISION_FACTOR = 1e18;
 
 // Production parameters
 uint256 constant MIN_SALE_AMOUNT = 0.001 ether; // at least 0.001 rBTC per sale
-uint256 constant MIN_SALE_PERIOD = 1 days; // Minimum time between sales (1 day for production)
+uint256 constant MIN_SALE_PERIOD = 7 days; // Minimum time between sales
 
 // Testing parameters for RSK testnet live deployments
 uint256 constant MIN_SALE_AMOUNT_TESTNET = 0.0001 ether; // at least 0.0001 rBTC per sale for testing
-uint256 constant MIN_SALE_PERIOD_TESTNET = 1 seconds; // 1 second for testing (can use vm.warp to skip time)
 
 // Fee configuration
 uint256 constant MIN_FEE_RATE = 100; // 1% fee rate

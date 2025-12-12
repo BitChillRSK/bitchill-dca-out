@@ -45,7 +45,8 @@ contract SaleTest is DcaOutTestBase {
 
         // Try to execute before period elapsed
         uint256 lastSaleTimestamp = block.timestamp;
-        vm.warp(block.timestamp + SALE_PERIOD - 1);
+        uint256 currentDayStart = lastSaleTimestamp - (lastSaleTimestamp % 1 days);
+        vm.warp(currentDayStart + SALE_PERIOD - 1); // One second before 00:00 UTC of the day the sale is due
         bytes memory encodedRevert = abi.encodeWithSelector(
             IDcaOutManager.DcaOutManager__SalePeriodNotElapsed.selector,
             lastSaleTimestamp,
@@ -56,6 +57,32 @@ contract SaleTest is DcaOutTestBase {
 
         vm.prank(swapper);
         dcaOutManager.sellRbtc(user, 0, scheduleId);
+    }
+
+    function testCanSellRbtcOnceTargetDayReached() public {
+        bytes32 scheduleId = createDcaOutSchedule(user, SALE_AMOUNT, SALE_PERIOD, DEPOSIT_AMOUNT);
+
+        // Execute first sale at a late time in the day (simulating bot delay)
+        vm.warp(block.timestamp + 20 hours); // Late in day 0
+        executeSale(user, 0, scheduleId);
+
+        uint256 userDocBalanceBefore = dcaOutManager.getUserDocBalance(user);
+
+        IDcaOutManager.DcaOutSchedule memory schedule = dcaOutManager.getSchedule(user, 0);
+        uint256 lastSaleTimestamp = schedule.lastSaleTimestamp;
+
+        // The exact period would be lastSaleTimestamp + SALE_PERIOD (20 hours into day 1)
+        // But with day-boundary logic, we can execute as soon as we reach day 1 (at 00:00)
+        uint256 nextDayStart = lastSaleTimestamp + SALE_PERIOD - (lastSaleTimestamp + SALE_PERIOD) % 1 days;
+        vm.warp(nextDayStart); // Warp to 00:00 of day 1
+
+        // This should succeed even though we haven't reached lastSaleTimestamp + SALE_PERIOD yet
+        // This is the key benefit: bot can run at consistent daily time (e.g., 9 AM) without drift
+        executeSale(user, 0, scheduleId);
+
+        // Verify the sale happened
+        uint256 userDocBalance = dcaOutManager.getUserDocBalance(user);
+        assertEq(userDocBalance, userDocBalanceBefore * 2, "User should have received DOC from both sales");
     }
 
     function testCannotUpdateScheduleWithSaleAmountTooHigh() public {
@@ -262,12 +289,12 @@ contract SaleTest is DcaOutTestBase {
     function testMultipleSalesDoNotCauseAccountingErrors() public {
         uint256 depositAmount = 136999999999999999; // deposit amount not divisible by 5
         uint256 saleAmount = depositAmount / 5;
-        bytes32 scheduleId = createDcaOutSchedule(user, saleAmount, 1 days, depositAmount);
+        bytes32 scheduleId = createDcaOutSchedule(user, saleAmount, SALE_PERIOD, depositAmount);
 
         IDcaOutManager.DcaOutSchedule memory schedule = dcaOutManager.getSchedule(user, 0);
         // Execute 5 sales (one per day)
         for (uint256 i = 0; i < 5; i++) {
-            vm.warp(block.timestamp + 1 days);
+            vm.warp(block.timestamp + SALE_PERIOD);
             vm.prank(swapper);
             dcaOutManager.sellRbtc(user, 0, scheduleId);
 
@@ -297,7 +324,7 @@ contract SaleTest is DcaOutTestBase {
             users[i] = makeAddr(string(abi.encodePacked("user", i)));
             vm.deal(users[i], depositAmount);
             scheduleIndexes[i] = 0;
-            scheduleIds[i] = createDcaOutSchedule(users[i], saleAmount, 1 days, depositAmount);
+            scheduleIds[i] = createDcaOutSchedule(users[i], saleAmount, SALE_PERIOD, depositAmount);
         }
 
         // Execute batch sale - each user's balance should decrease by exactly saleAmount
@@ -313,7 +340,7 @@ contract SaleTest is DcaOutTestBase {
 
         // Execute 4 more batch sales to test multiple sequential batch operations
         for (uint256 sale = 0; sale < 4; sale++) {
-            vm.warp(block.timestamp + 1 days);
+            vm.warp(block.timestamp + SALE_PERIOD);
             executeBatchSale(users, scheduleIndexes, scheduleIds);
         }
 

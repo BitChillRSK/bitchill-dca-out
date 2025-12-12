@@ -2,6 +2,7 @@
 pragma solidity 0.8.19;
 
 import {DcaOutTestBase} from "./DcaOutTestBase.t.sol";
+import {IDcaOutManager} from "../../src/interfaces/IDcaOutManager.sol";
 import "../Constants.sol";
 
 /**
@@ -55,6 +56,18 @@ contract OnlyOwnerTest is DcaOutTestBase {
         emit DcaOutManager__MinSalePeriodSet(2 days);
         dcaOutManager.setMinSalePeriod(2 days);
         assertEq(dcaOutManager.getMinSalePeriod(), 2 days, "Min sale period should be updated");
+    }
+
+    function testCannotSetMinSalePeriodBelowOneDay() public {
+        vm.prank(owner);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IDcaOutManager.DcaOutManager__MinSalePeriodBelowLowerBound.selector,
+                1 days - 1,
+                1 days
+            )
+        );
+        dcaOutManager.setMinSalePeriod(1 days - 1);
     }
 
     function testCannotSetMinSalePeriodIfNotOwner() public {

@@ -52,17 +52,14 @@ contract DeployDcaOut is DeployBase {
 
         // Choose parameters based on environment
         uint256 minSaleAmount;
-        uint256 minSalePeriod;
 
         if (environment == Environment.TESTNET) {
             // Testing parameters for testnet (manual testing with fake money)
             minSaleAmount = MIN_SALE_AMOUNT_TESTNET;
-            minSalePeriod = MIN_SALE_PERIOD_TESTNET;
             console2.log("Using TESTING parameters for testnet deployment");
         } else {
             // Production parameters for mainnet, local, and fork testing
             minSaleAmount = MIN_SALE_AMOUNT;
-            minSalePeriod = MIN_SALE_PERIOD;
             console2.log(
                 "Using PRODUCTION parameters for",
                 environment == Environment.MAINNET ? "mainnet" : environment == Environment.LOCAL ? "local" : "fork",
@@ -75,7 +72,7 @@ contract DeployDcaOut is DeployBase {
             mocProxyAddress: config.mocProxyAddress,
             feeCollector: config.feeCollector,
             feeSettings: feeSettings,
-            minSalePeriod: minSalePeriod,
+            minSalePeriod: MIN_SALE_PERIOD,
             maxSchedulesPerUser: MAX_SCHEDULES_PER_USER,
             minSaleAmount: minSaleAmount,
             mocCommission: MOC_COMMISSION,
