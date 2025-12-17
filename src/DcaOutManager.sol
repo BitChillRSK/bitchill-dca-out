@@ -54,6 +54,15 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         _;
     }
 
+    /**
+     * @notice Validate that the minimum sale period is greater than 1 day
+     * @param minSalePeriod The minimum sale period to validate
+     */
+    modifier validateMinSalePeriod(uint256 minSalePeriod) {
+        if (minSalePeriod < 1 days) revert DcaOutManager__MinSalePeriodBelowLowerBound(minSalePeriod, 1 days);
+        _;
+    }
+
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -61,7 +70,10 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
     /**
      * @param config Protocol configuration (addresses, fee settings, and limits)
      */
-    constructor(IDcaOutManager.ProtocolConfig memory config) FeeHandler(config.feeCollector, config.feeSettings) {
+    constructor(IDcaOutManager.ProtocolConfig memory config)
+        FeeHandler(config.feeCollector, config.feeSettings)
+        validateMinSalePeriod(config.minSalePeriod)
+    {
         i_docToken = IERC20(config.docTokenAddress);
         i_mocProxy = IMocProxy(config.mocProxyAddress);
         s_minSalePeriod = config.minSalePeriod;
@@ -346,7 +358,7 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IDcaOutManager
-    function setMinSalePeriod(uint256 minSalePeriod) external override onlyOwner {
+    function setMinSalePeriod(uint256 minSalePeriod) external override onlyOwner validateMinSalePeriod(minSalePeriod) {
         s_minSalePeriod = minSalePeriod;
         emit DcaOutManager__MinSalePeriodSet(minSalePeriod);
     }
@@ -438,6 +450,7 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
 
     /**
      * @notice Validate that the period has elapsed since the last sale
+     * @notice The period is considered to have elapsed if the next allowed sale is within the current day (UTC)
      * @param lastSaleTimestamp The timestamp of the last sale
      * @param salePeriod The sale period
      * @return currentSaleTimestamp The timestamp of the current sale
@@ -447,7 +460,9 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         view
         returns (uint256 currentSaleTimestamp)
     {
-        if (lastSaleTimestamp != 0 && block.timestamp < lastSaleTimestamp + salePeriod) {
+        uint256 currentDayStart = block.timestamp - (block.timestamp % 1 days); // 00:00 UTC of today
+        uint256 nextSaleDayStart = lastSaleTimestamp + salePeriod - (lastSaleTimestamp + salePeriod) % 1 days; // 00:00 UTC of the next sale day
+        if (lastSaleTimestamp != 0 && currentDayStart < nextSaleDayStart) {
             revert DcaOutManager__SalePeriodNotElapsed(
                 lastSaleTimestamp, lastSaleTimestamp + salePeriod, block.timestamp
             );

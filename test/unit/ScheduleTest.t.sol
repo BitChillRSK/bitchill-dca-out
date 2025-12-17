@@ -214,7 +214,7 @@ contract ScheduleTest is DcaOutTestBase {
         createDcaOutSchedule(user, SALE_AMOUNT, SALE_PERIOD, DEPOSIT_AMOUNT);
         IDcaOutManager.DcaOutSchedule memory schedule = dcaOutManager.getSchedule(user, 0);
 
-        uint256 newSalePeriod = 2 days; // Valid period
+        uint256 newSalePeriod = 2 * SALE_PERIOD; // Valid period
 
         vm.expectEmit(true, true, true, true);
         emit DcaOutManager__SalePeriodSet(user, schedule.scheduleId, newSalePeriod);
@@ -230,7 +230,7 @@ contract ScheduleTest is DcaOutTestBase {
         IDcaOutManager.DcaOutSchedule memory schedule = dcaOutManager.getSchedule(user, 0);
 
         uint256 newSaleAmount = 0.3 ether;
-        uint256 newSalePeriod = 2 days;
+        uint256 newSalePeriod = 2 * SALE_PERIOD;
 
         vm.expectEmit(true, true, true, true);
         emit DcaOutManager__ScheduleUpdated(user, schedule.scheduleId, 0, newSaleAmount, newSalePeriod, DEPOSIT_AMOUNT);
