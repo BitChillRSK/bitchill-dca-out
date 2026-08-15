@@ -83,6 +83,51 @@ contract SaleTest is DcaOutTestBase {
         // Verify the sale happened
         uint256 userDocBalance = dcaOutManager.getUserDocBalance(user);
         assertEq(userDocBalance, userDocBalanceBefore * 2, "User should have received DOC from both sales");
+
+        schedule = dcaOutManager.getSchedule(user, 0);
+        assertEq(schedule.lastSaleTimestamp, lastSaleTimestamp + SALE_PERIOD);
+
+        // Same-day second sale after the early UTC-day buy must revert
+        vm.warp(nextDayStart + 9 hours);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IDcaOutManager.DcaOutManager__SalePeriodNotElapsed.selector,
+                schedule.lastSaleTimestamp,
+                schedule.lastSaleTimestamp + SALE_PERIOD,
+                block.timestamp
+            )
+        );
+        vm.prank(swapper);
+        dcaOutManager.sellRbtc(user, 0, scheduleId);
+    }
+
+    function testGapResumeOnDueUtcDayConsumesThatDaySlot() public {
+        bytes32 scheduleId = createDcaOutSchedule(user, SALE_AMOUNT, SALE_PERIOD, DEPOSIT_AMOUNT);
+
+        uint256 firstSale = _nextUtcTimestamp(20 hours);
+        vm.warp(firstSale);
+        executeSale(user, 0, scheduleId);
+
+        // First sale day 0 20:00, resume at 00:00 UTC of the third due day
+        // (2 wall-clock periods later; without the extra snap today's slot would still be due)
+        uint256 thirdDueDayStart = _utcDayStart(firstSale) + 3 * SALE_PERIOD;
+        vm.warp(thirdDueDayStart);
+        executeSale(user, 0, scheduleId);
+
+        IDcaOutManager.DcaOutSchedule memory schedule = dcaOutManager.getSchedule(user, 0);
+        assertEq(schedule.lastSaleTimestamp, firstSale + 3 * SALE_PERIOD);
+
+        vm.warp(thirdDueDayStart + 9 hours);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IDcaOutManager.DcaOutManager__SalePeriodNotElapsed.selector,
+                schedule.lastSaleTimestamp,
+                schedule.lastSaleTimestamp + SALE_PERIOD,
+                block.timestamp
+            )
+        );
+        vm.prank(swapper);
+        dcaOutManager.sellRbtc(user, 0, scheduleId);
     }
 
     function testCannotUpdateScheduleWithSaleAmountTooHigh() public {
@@ -120,10 +165,10 @@ contract SaleTest is DcaOutTestBase {
         dcaOutManager.unpauseSchedule(0, scheduleId);
         executeSale(user, 0, scheduleId);
         IDcaOutManager.DcaOutSchedule memory schedule = dcaOutManager.getSchedule(user, 0);
-        assertLe(schedule.lastSaleTimestamp, block.timestamp);
+        uint256 expectedLast = _snappedLastSaleTimestamp(firstSaleTimestamp, SALE_PERIOD, block.timestamp);
+        assertEq(schedule.lastSaleTimestamp, expectedLast);
+        assertLt(schedule.lastSaleTimestamp, block.timestamp + SALE_PERIOD);
         assertGt(schedule.lastSaleTimestamp, block.timestamp - SALE_PERIOD);
-        uint256 periodsElapsed = (block.timestamp - firstSaleTimestamp) / SALE_PERIOD;
-        assertEq(schedule.lastSaleTimestamp, firstSaleTimestamp + periodsElapsed * SALE_PERIOD);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -450,5 +495,32 @@ contract SaleTest is DcaOutTestBase {
 
         // Now we should be able to batch sell
         executeBatchSale(users, scheduleIndexes, scheduleIds);
+    }
+
+    function _utcDayStart(uint256 timestamp) private pure returns (uint256) {
+        return timestamp - (timestamp % 1 days);
+    }
+
+    function _nextUtcTimestamp(uint256 hourOfDay) private view returns (uint256) {
+        uint256 candidate = _utcDayStart(block.timestamp) + hourOfDay;
+        if (candidate < block.timestamp) {
+            candidate += 1 days;
+        }
+        return candidate;
+    }
+
+    function _snappedLastSaleTimestamp(uint256 lastSaleTimestamp, uint256 salePeriod, uint256 timestamp)
+        private
+        pure
+        returns (uint256)
+    {
+        uint256 periodsElapsed = (timestamp - lastSaleTimestamp) / salePeriod;
+        if (periodsElapsed == 0) periodsElapsed = 1;
+        uint256 snapped = lastSaleTimestamp + periodsElapsed * salePeriod;
+        uint256 nextSaleDayStart = _utcDayStart(snapped + salePeriod);
+        if (_utcDayStart(timestamp) >= nextSaleDayStart) {
+            snapped += salePeriod;
+        }
+        return snapped;
     }
 }

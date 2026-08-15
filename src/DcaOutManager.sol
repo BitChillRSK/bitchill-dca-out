@@ -467,11 +467,22 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
                 lastSaleTimestamp, lastSaleTimestamp + salePeriod, block.timestamp
             );
         }
-        // Calculate the number of periods elapsed since the last sale so lastSaleTimestamp is consistent even if the schedule is paused and resumed
+        if (lastSaleTimestamp == 0) {
+            return block.timestamp;
+        }
+        // Floor periodsElapsed at 1 so an early UTC-day sale still consumes a slot.
+        // If the wall-clock snap still leaves today's UTC day due (gap after a late-in-day last),
+        // consume one more period so a second sale the same day cannot pass.
         uint256 periodsElapsed = (block.timestamp - lastSaleTimestamp) / salePeriod;
+        if (periodsElapsed == 0) periodsElapsed = 1;
         unchecked {
-            currentSaleTimestamp =
-                lastSaleTimestamp == 0 ? block.timestamp : lastSaleTimestamp + periodsElapsed * salePeriod;
+            currentSaleTimestamp = lastSaleTimestamp + periodsElapsed * salePeriod;
+        }
+        nextSaleDayStart = currentSaleTimestamp + salePeriod - (currentSaleTimestamp + salePeriod) % 1 days;
+        if (currentDayStart >= nextSaleDayStart) {
+            unchecked {
+                currentSaleTimestamp += salePeriod;
+            }
         }
     }
 
