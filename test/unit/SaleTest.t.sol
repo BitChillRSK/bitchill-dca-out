@@ -63,13 +63,15 @@ contract SaleTest is DcaOutTestBase {
         bytes32 scheduleId = createDcaOutSchedule(user, SALE_AMOUNT, SALE_PERIOD, DEPOSIT_AMOUNT);
 
         // Execute first sale at a late time in the day (simulating bot delay)
-        vm.warp(block.timestamp + 20 hours); // Late in day 0
+        uint256 firstSale = _nextUtcTimestamp(20 hours);
+        vm.warp(firstSale);
         executeSale(user, 0, scheduleId);
 
         uint256 userDocBalanceBefore = dcaOutManager.getUserDocBalance(user);
 
         IDcaOutManager.DcaOutSchedule memory schedule = dcaOutManager.getSchedule(user, 0);
         uint256 lastSaleTimestamp = schedule.lastSaleTimestamp;
+        assertEq(lastSaleTimestamp, _utcDayStart(firstSale));
 
         // The exact period would be lastSaleTimestamp + SALE_PERIOD (20 hours into day 1)
         // But with day-boundary logic, we can execute as soon as we reach day 1 (at 00:00)
@@ -115,7 +117,7 @@ contract SaleTest is DcaOutTestBase {
         executeSale(user, 0, scheduleId);
 
         IDcaOutManager.DcaOutSchedule memory schedule = dcaOutManager.getSchedule(user, 0);
-        assertEq(schedule.lastSaleTimestamp, firstSale + 3 * SALE_PERIOD);
+        assertEq(schedule.lastSaleTimestamp, _utcDayStart(firstSale) + 3 * SALE_PERIOD);
 
         vm.warp(thirdDueDayStart + 9 hours);
         vm.expectRevert(
@@ -159,13 +161,13 @@ contract SaleTest is DcaOutTestBase {
         executeSale(user, 0, scheduleId);
         vm.prank(user);
         dcaOutManager.pauseSchedule(0, scheduleId); // Pausing is really just to make the test realistic, but has no effect
-        uint256 firstSaleTimestamp = block.timestamp;
+        uint256 gridOrigin = dcaOutManager.getSchedule(user, 0).lastSaleTimestamp;
         vm.warp(block.timestamp + timePaused); // Schedule is paused for some time
         vm.prank(user);
         dcaOutManager.unpauseSchedule(0, scheduleId);
         executeSale(user, 0, scheduleId);
         IDcaOutManager.DcaOutSchedule memory schedule = dcaOutManager.getSchedule(user, 0);
-        uint256 expectedLast = _snappedLastSaleTimestamp(firstSaleTimestamp, SALE_PERIOD, block.timestamp);
+        uint256 expectedLast = _snappedLastSaleTimestamp(gridOrigin, SALE_PERIOD, block.timestamp);
         assertEq(schedule.lastSaleTimestamp, expectedLast);
         assertLt(schedule.lastSaleTimestamp, block.timestamp + SALE_PERIOD);
         assertGt(schedule.lastSaleTimestamp, block.timestamp - SALE_PERIOD);
@@ -502,8 +504,9 @@ contract SaleTest is DcaOutTestBase {
     }
 
     function _nextUtcTimestamp(uint256 hourOfDay) private view returns (uint256) {
-        uint256 candidate = _utcDayStart(block.timestamp) + hourOfDay;
-        if (candidate < block.timestamp) {
+        uint256 ts = block.timestamp < 1 days ? 1 days : block.timestamp;
+        uint256 candidate = _utcDayStart(ts) + hourOfDay;
+        if (candidate < ts) {
             candidate += 1 days;
         }
         return candidate;
