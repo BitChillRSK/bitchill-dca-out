@@ -469,8 +469,7 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
             );
         }
         if (lastSaleTimestamp == 0) {
-            // 0 stays "never sold". Unix epoch midnight would collide with that sentinel.
-            return currentDayStart == 0 ? 1 : currentDayStart;
+            return currentDayStart;
         }
         // Floor periodsElapsed at 1 so an early UTC-day sale still consumes a slot.
         // If the wall-clock snap still leaves today's UTC day due (gap after a late-in-day last),
