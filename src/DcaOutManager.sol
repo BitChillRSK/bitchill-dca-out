@@ -468,7 +468,7 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         returns (uint256 currentSaleTimestamp)
     {
         uint256 currentDayStart = block.timestamp - (block.timestamp % 1 days); // 00:00 UTC of today
-        uint256 nextSaleDayStart = lastSaleTimestamp + salePeriod - (lastSaleTimestamp + salePeriod) % 1 days; // 00:00 UTC of the next sale day
+        uint256 nextSaleDayStart = lastSaleTimestamp + salePeriod; // last and period are whole days
         if (lastSaleTimestamp != 0 && currentDayStart < nextSaleDayStart) {
             revert DcaOutManager__SalePeriodNotElapsed(
                 lastSaleTimestamp, lastSaleTimestamp + salePeriod, block.timestamp
