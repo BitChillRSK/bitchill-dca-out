@@ -471,11 +471,9 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         if (lastSaleTimestamp == 0) {
             return currentDayStart;
         }
-        // Floor periodsElapsed at 1 so an early UTC-day sale still consumes a slot.
-        // If the wall-clock snap still leaves today's UTC day due (gap after a late-in-day last),
-        // consume one more period so a second sale the same day cannot pass.
+        // If the wall-clock snap still leaves today's UTC day due, consume one more
+        // period so a second sale the same day cannot pass.
         uint256 periodsElapsed = (block.timestamp - lastSaleTimestamp) / salePeriod;
-        if (periodsElapsed == 0) periodsElapsed = 1;
         unchecked {
             currentSaleTimestamp = lastSaleTimestamp + periodsElapsed * salePeriod;
         }
