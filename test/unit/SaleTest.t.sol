@@ -518,11 +518,6 @@ contract SaleTest is DcaOutTestBase {
         returns (uint256)
     {
         uint256 periodsElapsed = (timestamp - lastSaleTimestamp) / salePeriod;
-        uint256 snapped = lastSaleTimestamp + periodsElapsed * salePeriod;
-        uint256 nextSaleDayStart = _utcDayStart(snapped + salePeriod);
-        if (_utcDayStart(timestamp) >= nextSaleDayStart) {
-            snapped += salePeriod;
-        }
-        return snapped;
+        return lastSaleTimestamp + periodsElapsed * salePeriod;
     }
 }

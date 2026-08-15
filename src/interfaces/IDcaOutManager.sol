@@ -101,6 +101,7 @@ interface IDcaOutManager {
     error DcaOutManager__SaleAmountBelowMinimum(uint256 inputAmount, uint256 minimumAmount);
     error DcaOutManager__SalePeriodBelowMinimum(uint256 inputPeriod, uint256 minimumPeriod);
     error DcaOutManager__MinSalePeriodBelowLowerBound(uint256 inputPeriod, uint256 lowerBound);
+    error DcaOutManager__SalePeriodMustBeWholeDays(uint256 period);
     error DcaOutManager__MaxSchedulesReached();
     error DcaOutManager__InexistentScheduleIndex(address user, uint256 scheduleIndex, uint256 scheduleCount);
     error DcaOutManager__ScheduleIdAndIndexMismatch(bytes32 providedId, bytes32 expectedId);

@@ -60,6 +60,7 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
      */
     modifier validateMinSalePeriod(uint256 minSalePeriod) {
         if (minSalePeriod < 1 days) revert DcaOutManager__MinSalePeriodBelowLowerBound(minSalePeriod, 1 days);
+        _requireWholeDays(minSalePeriod);
         _;
     }
 
@@ -429,6 +430,11 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
      */
     function _validateSalePeriod(uint256 salePeriod) private view {
         if (salePeriod < s_minSalePeriod) revert DcaOutManager__SalePeriodBelowMinimum(salePeriod, s_minSalePeriod);
+        _requireWholeDays(salePeriod);
+    }
+
+    function _requireWholeDays(uint256 period) private pure {
+        if (period % 1 days != 0) revert DcaOutManager__SalePeriodMustBeWholeDays(period);
     }
 
     /**
@@ -471,17 +477,9 @@ contract DcaOutManager is IDcaOutManager, FeeHandler, AccessControl, ReentrancyG
         if (lastSaleTimestamp == 0) {
             return currentDayStart;
         }
-        // If the wall-clock snap still leaves today's UTC day due, consume one more
-        // period so a second sale the same day cannot pass.
         uint256 periodsElapsed = (block.timestamp - lastSaleTimestamp) / salePeriod;
         unchecked {
             currentSaleTimestamp = lastSaleTimestamp + periodsElapsed * salePeriod;
-        }
-        nextSaleDayStart = currentSaleTimestamp + salePeriod - (currentSaleTimestamp + salePeriod) % 1 days;
-        if (currentDayStart >= nextSaleDayStart) {
-            unchecked {
-                currentSaleTimestamp += salePeriod;
-            }
         }
     }
 

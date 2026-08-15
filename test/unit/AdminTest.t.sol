@@ -68,6 +68,14 @@ contract OnlyOwnerTest is DcaOutTestBase {
         dcaOutManager.setMinSalePeriod(1 days - 1);
     }
 
+    function testCannotSetMinSalePeriodIfNotWholeDays() public {
+        vm.prank(owner);
+        vm.expectRevert(
+            abi.encodeWithSelector(IDcaOutManager.DcaOutManager__SalePeriodMustBeWholeDays.selector, 1 days + 12 hours)
+        );
+        dcaOutManager.setMinSalePeriod(1 days + 12 hours);
+    }
+
     function testCannotSetMinSalePeriodIfNotOwner() public {
         vm.prank(user);
         vm.expectRevert("Ownable: caller is not the owner");

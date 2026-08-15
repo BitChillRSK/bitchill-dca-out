@@ -55,6 +55,15 @@ contract ScheduleTest is DcaOutTestBase {
         dcaOutManager.createDcaOutSchedule{value: DEPOSIT_AMOUNT}(SALE_AMOUNT, MIN_SALE_PERIOD - 1);
     }
 
+    function testCannotCreateDcaOutScheduleWithPeriodNotWholeDays() public {
+        uint256 notWholeDays = MIN_SALE_PERIOD + 12 hours;
+        vm.prank(user);
+        vm.expectRevert(
+            abi.encodeWithSelector(IDcaOutManager.DcaOutManager__SalePeriodMustBeWholeDays.selector, notWholeDays)
+        );
+        dcaOutManager.createDcaOutSchedule{value: DEPOSIT_AMOUNT}(SALE_AMOUNT, notWholeDays);
+    }
+
     function testCannotCreateDcaOutScheduleWhenMaxSchedulesReached() public {
         // Create max number of schedules (use less rBTC to avoid running out of funds)
         for (uint256 i = 0; i < MAX_SCHEDULES_PER_USER; i++) {
@@ -270,6 +279,18 @@ contract ScheduleTest is DcaOutTestBase {
         );
         vm.prank(user);
         dcaOutManager.setSalePeriod(0, schedule.scheduleId, invalidSalePeriod);
+    }
+
+    function testCannotSetSalePeriodIfNotWholeDays() public {
+        createDcaOutSchedule(user, SALE_AMOUNT, SALE_PERIOD, DEPOSIT_AMOUNT);
+        IDcaOutManager.DcaOutSchedule memory schedule = dcaOutManager.getSchedule(user, 0);
+
+        uint256 notWholeDays = MIN_SALE_PERIOD + 12 hours;
+        vm.expectRevert(
+            abi.encodeWithSelector(IDcaOutManager.DcaOutManager__SalePeriodMustBeWholeDays.selector, notWholeDays)
+        );
+        vm.prank(user);
+        dcaOutManager.setSalePeriod(0, schedule.scheduleId, notWholeDays);
     }
 
     /*//////////////////////////////////////////////////////////////
